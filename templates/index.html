@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Option Pricing Calculator</title>
+    <link rel=”stylesheet” href=”https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css”rel=”nofollow” integrity=”sha384-r4NyP46KrjDleawBgD5tp8Y7UzmLA05oM1iAEQ17CSuDqnUK2+k9luXQOfXJCJ4I” crossorigin=”anonymous”></head>
+<body>
+    <h1>Option Pricing Calculator</h1>
+    <form action="/pricing" method="post">
+        <label for="stock_price">Stock Price (S):</label>
+        <input type="number" id="stock_price" name="stock_price" step="1" required><br><br>
+
+        <label for="strike_price">Strike Price (K):</label>
+        <input type="number" id="strike_price" name="strike_price" step="1" required><br><br>
+
+        <label for="time_to_expiry">Time to Expiry (T in years):</label>
+        <input type="number" id="time_to_expiry" name="time_to_expiry" step="0.1" required><br><br>
+
+        <label for="risk_free_rate">Risk-Free Rate (r as decimal):</label>
+        <input type="number" id="risk_free_rate" name="risk_free_rate" step="0.01" required><br><br>
+
+        <label for="yield_rate">Yield Rate (y as decimal):</label>
+        <input type="number" id="yield_rate" name="yield_rate" step="0.01"><br><br>
+
+        <label for="volatility">Volatility (σ as decimal):</label>
+        <input type="number" id="volatility" name="volatility" step="0.01" required><br><br>
+
+        <label for="option_type">Option Type:</label>
+        <select id="option_type" name="option_type">
+            <option value="call">Call Option</option>
+            <option value="put">Put Option</option>
+        </select><br><br>
+
+        <button type="submit">Calculate Price</button>
+    </form>
+
+    {% if price %}
+    <h2>Calculated Option Price: {{ price }}</h2>
+    {% endif %}
+</body>
+</html>
