@@ -3,39 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <title>Option Pricing Calculator</title>
-    <link rel=”stylesheet” href=”https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css”rel=”nofollow” integrity=”sha384-r4NyP46KrjDleawBgD5tp8Y7UzmLA05oM1iAEQ17CSuDqnUK2+k9luXQOfXJCJ4I” crossorigin=”anonymous”></head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css" rel="nofollow" integrity="sha384-r4NyP46KrjDleawBgD5tp8Y7UzmLA05oM1iAEQ17CSuDqnUK2+k9luXQOfXJCJ4I" crossorigin="anonymous">
+</head>
 <body>
-    <h1>Option Pricing Calculator</h1>
-    <form action="/pricing" method="post">
-        <label for="stock_price">Stock Price (S):</label>
-        <input type="number" id="stock_price" name="stock_price" step="1" required><br><br>
+    <div class="container">
+        <h1>Option Pricing Calculator</h1>
+        <form id="optionForm" action="/" method="post" onsubmit="saveState(); saveScrollPosition();">
 
-        <label for="strike_price">Strike Price (K):</label>
-        <input type="number" id="strike_price" name="strike_price" step="1" required><br><br>
+            <!-- Row 1: Stock Price, Strike Price, Time to Expiry -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="stock_price" class="form-label">Stock Price (S):</label>
+                    <input type="number" id="stock_price" name="stock_price" step="1" value="100" class="form-control" required>
+                </div>
 
-        <label for="time_to_expiry">Time to Expiry (T in years):</label>
-        <input type="number" id="time_to_expiry" name="time_to_expiry" step="0.1" required><br><br>
+                <div class="col-md-4 mb-3">
+                    <label for="strike_price" class="form-label">Strike Price (K):</label>
+                    <input type="number" id="strike_price" name="strike_price" step="1" value="100" class="form-control" required>
+                </div>
 
-        <label for="risk_free_rate">Risk-Free Rate (r as decimal):</label>
-        <input type="number" id="risk_free_rate" name="risk_free_rate" step="0.01" required><br><br>
+                <div class="col-md-4 mb-3">
+                    <label for="time_to_expiry" class="form-label">Time to Expiry (T in years):</label>
+                    <input type="number" id="time_to_expiry" name="time_to_expiry" step="0.1" value="1"  class="form-control" required>
+                </div>
+            </div>
 
-        <label for="yield_rate">Yield Rate (y as decimal):</label>
-        <input type="number" id="yield_rate" name="yield_rate" step="0.01"><br><br>
+            <!-- Row 2: Risk-Free Rate, Yield Rate, Volatility -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="risk_free_rate" class="form-label">Risk-Free Rate (r as decimal):</label>
+                    <input type="number" id="risk_free_rate" name="risk_free_rate" step="0.01" value="0.05" class="form-control" required>
+                </div>
 
-        <label for="volatility">Volatility (σ as decimal):</label>
-        <input type="number" id="volatility" name="volatility" step="0.01" required><br><br>
+                <div class="col-md-4 mb-3">
+                    <label for="yield_rate" class="form-label">Yield Rate (y as decimal):</label>
+                    <input type="number" id="yield_rate" name="yield_rate" step="0.01" value="0" class="form-control">
+                </div>
 
-        <label for="option_type">Option Type:</label>
-        <select id="option_type" name="option_type">
-            <option value="call">Call Option</option>
-            <option value="put">Put Option</option>
-        </select><br><br>
+                <div class="col-md-4 mb-3">
+                    <label for="volatility" class="form-label">Volatility (σ as decimal):</label>
+                    <input type="number" id="volatility" name="volatility" step="0.01" value="0.15" class="form-control" required>
+                </div>
+            </div>
 
-        <button type="submit">Calculate Price</button>
-    </form>
+            <!-- Row 3: Kind of Option, Option Type, Method -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="kind" class="form-label">Kind of Option:</label>
+                    <select id="kind" name="kind" class="form-select">
+                        <option value="european">European Option</option>
+                        <option value="american">American Option</option>
+                    </select>
+                </div>
 
-    {% if price %}
-    <h2>Calculated Option Price: {{ price }}</h2>
-    {% endif %}
+                <div class="col-md-4 mb-3">
+                    <label for="option_type" class="form-label">Option Type:</label>
+                    <select id="option_type" name="option_type" class="form-select">
+                        <option value="call">Call Option</option>
+                        <option value="put">Put Option</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="method" class="form-label">Method:</label>
+                    <select id="method" name="method" class="form-select" onchange="toggleInputs()">
+                        <option value="BSM">Black-Scholes-Merton model</option>
+                        <option value="Binomial">Binomial Tree method</option>
+                        <option value="Trinomial">Trinomial Tree method</option>
+                        <option value="MC">Monte Carlo simulation</option>
+                        <option value="LSMC">Least Squares Monte Carlo simulation</option>
+                        <option value="JD">Jump-Diffusion process</option>
+                        <option value="EFM">Explicit Finite Difference method</option>
+                        <option value="IFM">Implicit Finite Difference method</option>
+                        <option value="CNFM">Crank-Nicolson Finite Difference method</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 4: Monte Carlo Fields -->
+            <div id="mc_fields" class="row" style="display: none;">
+                <div class="col-md-4 mb-3">
+                    <label for="seed" class="form-label">Random seed:</label>
+                    <input type="number" id="seed" name="seed" step="1" value="42" class="form-control">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="iterations" class="form-label">Iterations (n):</label>
+                    <input type="number" id="iterations" name="iterations" step="100" value="10000" class="form-control">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="timestep" class="form-label">Timestep (dt):</label>
+                    <input type="number" id="timestep" name="timestep" step="0.001" value="0.004" class="form-control">
+                </div>
+            </div>
+
+            <!-- Checkbox and Button Row -->
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showGreeks" name="showGreeks">
+                        <label class="form-check-label" for="showGreeks">
+                            Show Greeks
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3 text-end">
+                    <button type="submit" class="btn btn-primary">Calculate Price</button>
+                </div>
+            </div>
+
+        </form>
+
+        {% if price %}
+        <h2 class="mt-3">Calculated Option Price: {{ price }}</h2>
+        {% endif %}
+        {% if greeks %}
+        <h3 class="mt-3">Option Greeks:</h3>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Greek</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Delta</td>
+                    <td>{{ greeks.delta }}</td>
+                </tr>
+                <tr>
+                    <td>Gamma</td>
+                    <td>{{ greeks.gamma }}</td>
+                </tr>
+                <tr>
+                    <td>Theta</td>
+                    <td>{{ greeks.theta }}</td>
+                </tr>
+                <tr>
+                    <td>Vega</td>
+                    <td>{{ greeks.vega }}</td>
+                </tr>
+                <tr>
+                    <td>Rho</td>
+                    <td>{{ greeks.rho }}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <script>
+        function toggleInputs() {
+            const method = document.getElementById('method').value;
+            const mcFields = document.getElementById('mc_fields');
+
+            // Show Monte Carlo inputs if the method is Monte Carlo
+            if (method === 'MC') {
+                mcFields.style.display = 'flex';
+            } else {
+                mcFields.style.display = 'none';
+            }
+        }
+
+        function saveState() {
+            const form = document.getElementById('optionForm');
+            const formData = new FormData(form);
+
+            // Save each field in localStorage
+            formData.forEach((value, key) => {
+                localStorage.setItem(key, value);
+            });
+            // Save the state of the checkbox explicitly
+            const showGreeksCheckbox = document.getElementById('showGreeks');
+            localStorage.setItem('showGreeks', showGreeksCheckbox.checked);
+        }
+
+        // Load form state from localStorage
+        function loadState() {
+            const form = document.getElementById('optionForm');
+            const inputs = form.querySelectorAll('input, select');
+
+            inputs.forEach(input => {
+                const savedValue = localStorage.getItem(input.name);
+                if (savedValue !== null) {
+                    if (input.type === 'checkbox') {
+                        input.checked = (savedValue === 'true');  // Check if the value is 'true'
+                    } else {
+                        input.value = savedValue;
+                    }
+                }
+            });
+
+            // Restore the state of the "showGreeks" checkbox explicitly
+            const showGreeksCheckbox = document.getElementById('showGreeks');
+            const showGreeksState = localStorage.getItem('showGreeks');
+            if (showGreeksState !== null) {
+                showGreeksCheckbox.checked = (showGreeksState === 'true');
+            }
+            // Call toggleInputs to display the correct fields
+            toggleInputs();
+        }
+
+        // Function to save the scroll position in localStorage
+        function saveScrollPosition() {
+            localStorage.setItem('scrollPosition', window.scrollY);
+        }
+
+        // Function to restore the scroll position after page load
+        function restoreScrollPosition() {
+            const scrollPosition = localStorage.getItem('scrollPosition');
+            if (scrollPosition) {
+                window.scrollTo(0, parseInt(scrollPosition));
+            }
+        }
+
+        // Load the form state when the page loads
+        window.onload = function() {
+            loadState();
+            restoreScrollPosition();
+        }
+    </script>
 </body>
 </html>
