@@ -1,8 +1,6 @@
 from flask import Flask, render_template, request
 import numpy as np
 from src.option import European_Option, American_Option
-import sys
-print(sys.executable)
 
 app = Flask(__name__)
 
@@ -19,6 +17,7 @@ def calculate_price():
         kind = request.form['kind']
         method = request.form['method']
         show_greeks = request.form.get('showGreeks') == 'on'
+        print(kind, option_type)
 
         SO = European_Option(option_type,S,K,r,sig,y,T)
 
