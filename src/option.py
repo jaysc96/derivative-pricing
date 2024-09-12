@@ -25,6 +25,52 @@ class Option:
         self.n = n
         self.dt = dt
         self.seed = seed
+    
+    def setTreeSteps(self, n):
+        self.n = n
+
+    def greeks(self, eps=0.5, method='BT'):
+        time_eps = 0.05
+        sig_eps = eps / 100
+
+        O = self.priceOption(method=method)
+        self.S0 += eps
+        Op = self.priceOption(method=method)
+        self.S0 -= 2 * eps
+        Om = self.priceOption(method=method)
+        self.S0 += eps
+
+        delta = (Op - Om) / 2 / eps
+        gamma = (Op + Om - 2 * O) / (eps**2)
+
+        self.T += time_eps
+        OTp = self.priceOption(method=method)
+        self.T -= time_eps
+        theta = (O - OTp) / time_eps
+
+        self.sig += sig_eps
+        OSigp = self.priceOption(method=method)
+        self.sig -= sig_eps
+        vega = (OSigp - O) / sig_eps
+
+        self.r += sig_eps
+        Orp = self.priceOption(method=method)
+        self.r -= sig_eps
+        rho = (Orp - O) / sig_eps 
+
+        return {"price": O, "delta": delta, "gamma": gamma, "theta": theta, "vega": vega, "rho": rho}
+
+    def priceOption(self, greeks=False, method='BSM'):
+        if method=='BSM':
+            return self.BSM(greeks=greeks)
+        if greeks:
+            return self.greeks(method=method)
+        if method == 'MC':
+            return self.MC()
+        if method == 'BT':
+            return self.BT()
+        if method == 'TT':
+            return self.TT()
 
 class European_Option(Option):
     def BSM(self, greeks=False):
@@ -67,44 +113,85 @@ class European_Option(Option):
         Ota_est = np.exp(-self.r * self.T) * OTa.mean()
         return Ota_est
     
-    def greeks(self, eps=0.5, method='MC'):
-        time_eps = 0.05
-        sig_eps = eps / 100
+    def BT(self):
+        dt = self.T / self.n
+
+        u = np.exp(self.sig * np.sqrt(dt))
+        d = 1 / u
+        p = (np.exp((self.r - self.y) * dt) - d) / (u - d)
+
+        ST = np.array([self.S0 * u**(self.n - i) * d**i for i in range(self.n + 1)])
         
-        O = self.priceOption(method=method)
-        self.S0 += eps
-        Op = self.priceOption(method=method)
-        self.S0 -= 2 * eps
-        Om = self.priceOption(method=method)
-        self.S0 += eps
+        O = np.maximum(self.phi * (ST - self.K), 0)
 
-        delta = (Op - Om) / 2 / eps
-        gamma = (Op + Om - 2 * O) / (eps**2)
+        for i in range(self.n - 1, -1, -1):
+            Ot = np.zeros(i+1)
+            for j in range(i+1):
+                Ot[j] = np.exp(-self.r * dt) * (p * O[j] + (1-p) * O[j+1])
+            O = Ot
+        return O[0]
+    
+    def TT(self):
+        dt = self.T / self.n
+        u = np.exp(self.sig * np.sqrt(3 * dt))
+        d = 1 / u
+        dXu = self.sig * np.sqrt(3*dt)
 
-        self.T += time_eps
-        OTp = self.priceOption(method=method)
-        self.T -= time_eps
-        theta = (O - OTp) / time_eps
+        gam = self.r - self.y - self.sig**2 / 2
+        pd = 0.5 * ((self.sig**2 * dt + gam**2 * dt**2) / dXu**2 - gam * dt / dXu)
+        pu = 0.5 * ((self.sig**2 * dt + gam**2 * dt**2) / dXu**2 + gam * dt / dXu)
+        pm = 1 - pd - pu
 
-        self.sig += sig_eps
-        OSigp = self.priceOption(method=method)
-        self.sig -= sig_eps
-        vega = (OSigp - O) / sig_eps
+        ST = np.array([self.S0 * u**max(self.n - i, 0) * d**max(i - self.n, 0) for i in range(2 * self.n + 1)])
+        O = np.maximum(self.phi * (ST - self.K), 0)
 
-        self.r += sig_eps
-        Orp = self.priceOption(method=method)
-        self.r -= sig_eps
-        rho = (Orp - O) / sig_eps 
-
-        return {"price": O, "delta": delta, "gamma": gamma, "theta": theta, "vega": vega, "rho": rho}
-
-    def priceOption(self, greeks=False, method='BSM'):
-        if method=='BSM':
-            return self.BSM(greeks=greeks)
-        if greeks:
-            return self.greeks(method=method)
-        if method == 'MC':
-            return self.MC()
+        for i in range(self.n - 1, -1, -1):
+            Ot = np.zeros(2 * i + 1)
+            for j in range(2 * i + 1):
+                Ot[j] = np.exp(-self.r * dt) * (pu * O[j] + pm * O[j+1] + pd * O[j+2])
+            O = Ot
+        return O[0]
     
 class American_Option(Option):
-    pass
+    def BT(self):
+        dt = self.T / self.n
+
+        u = np.exp(self.sig * np.sqrt(dt))
+        d = 1 / u
+        p = (np.exp((self.r - self.y) * dt) - d) / (u - d)
+
+        ST = np.array([self.S0 * u**(self.n - i) * d**i for i in range(self.n + 1)])
+        
+        O = np.maximum(self.phi * (ST - self.K), 0)
+
+        for i in range(self.n - 1, -1, -1):
+            Ot = np.zeros(i+1)
+            St = np.array([self.S0 * u**(i - k) * d**k for k in range(i+1)])
+            ev = np.maximum(self.phi * (St - self.K),0)
+            for j in range(i+1):
+                Ot[j] = max(ev[j], np.exp(- self.r * dt) * (p * O[j] + (1-p) * O[j+1]))
+            O = Ot
+        return O[0]
+    
+    def TT(self):
+        dt = self.T / self.n
+        u = np.exp(self.sig * np.sqrt(3 * dt))
+        d = 1 / u
+        dXu = self.sig * np.sqrt(3 * dt)
+
+        gam = self.r - self.y - self.sig**2 / 2
+        pd = 0.5 * ((self.sig**2 * dt + gam**2 * dt**2) / dXu**2 - gam * dt / dXu)
+        pu = 0.5 * ((self.sig**2 * dt + gam**2 * dt**2) / dXu**2 + gam * dt / dXu)
+        pm = 1 - pd - pu
+
+        ST = np.array([self.S0 * u**max(self.n - i, 0) * d**max(i - self.n, 0) for i in range(2 * self.n + 1)])
+        O = np.maximum(self.phi * (ST - self.K), 0)
+
+        for i in range(self.n - 1, -1, -1):
+            Ot = np.zeros(2 * i + 1)
+            St = np.array([self.S0 * u**max(i - k, 0) * d**max(k - i, 0) for k in range(2 * i + 1)])
+            ev = np.maximum(self.phi * (St - self.K), 0)
+            for j in range(2 * i + 1):
+                Ot[j] = max(ev[j], np.exp(-self.r * dt) * (pu * O[j] + pm * O[j+1] + pd * O[j+2]))
+            O = Ot
+        return O[0]

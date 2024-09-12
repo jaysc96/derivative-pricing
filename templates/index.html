@@ -13,6 +13,27 @@
             // Update button styles
             document.getElementById('european').checked = (kind === 'european');
             document.getElementById('american').checked = (kind === 'american');
+
+            // Get the method dropdown
+            const methodSelect = document.getElementById('method');
+            // Define the options that need to be hidden for American option
+            const bsmOption = methodSelect.querySelector('option[value="BSM"]');
+            const mcOption = methodSelect.querySelector('option[value="MC"]');
+            if (kind === 'american') {
+                // Hide BSM and MC for American option
+                bsmOption.style.display = 'none';
+                mcOption.style.display = 'none';
+
+                // Automatically switch to another method if currently selected one is hidden
+                if (methodSelect.value === 'BSM' || methodSelect.value === 'MC') {
+                    methodSelect.value = 'BT'; // Default to Binomial Tree Method
+                    toggleInputs();
+                }
+            } else {
+                // Show BSM and MC for European option
+                bsmOption.style.display = 'block';
+                mcOption.style.display = 'block';
+            }
         }
 
         function setOptionType(type) {
@@ -28,7 +49,14 @@
         function toggleInputs() {
             const method = document.getElementById('method').value;
             const mcFields = document.getElementById('mc_fields');
+            const btttFields = document.getElementById('bt_tt_fields');
 
+            // Show Tree inputs if the method is Binomial or Trinomial Tree
+            if (method === 'BT' || method === 'TT') {
+                btttFields.style.display = 'flex';
+            } else {
+                btttFields.style.display = 'none';
+            }
             // Show Monte Carlo inputs if the method is Monte Carlo
             mcFields.style.display = (method === 'MC') ? 'flex' : 'none';
         }
@@ -50,6 +78,27 @@
         }
 
         function loadState() {
+            const kindValue = localStorage.getItem('kind');
+            const optionTypeValue = localStorage.getItem('option_type');
+
+            // Restore radio button state for kind
+            if (kindValue) {
+                setOptionKind(kindValue);
+            } else {
+                document.getElementById('european').checked = true; // Default to European
+                document.getElementById('kind').value = 'european'; // Set default hidden value
+            }
+
+            // Restore radio button state for option type
+            if (optionTypeValue) {
+                document.getElementById(optionTypeValue).checked = true; // Set the radio button checked
+                document.getElementById('option_type').value = optionTypeValue; // Set the hidden field value
+            } else {
+                document.getElementById('call').checked = true; // Default to Call
+                document.getElementById('option_type').value = 'call'; // Set default hidden value
+            }
+
+
             const form = document.getElementById('optionForm');
             const inputs = form.querySelectorAll('input, select');
 
@@ -71,27 +120,6 @@
             const showGreeksState = localStorage.getItem('showGreeks');
             if (showGreeksState !== null) {
                 showGreeksCheckbox.checked = (showGreeksState === 'true');
-            }
-
-            const kindValue = localStorage.getItem('kind');
-            const optionTypeValue = localStorage.getItem('option_type');
-
-            // Restore radio button state for kind
-            if (kindValue) {
-                document.getElementById(kindValue).checked = true; // Set the radio button checked
-                document.getElementById('kind').value = kindValue; // Set the hidden field value
-            } else {
-                document.getElementById('european').checked = true; // Default to European
-                document.getElementById('kind').value = 'european'; // Set default hidden value
-            }
-
-            // Restore radio button state for option type
-            if (optionTypeValue) {
-                document.getElementById(optionTypeValue).checked = true; // Set the radio button checked
-                document.getElementById('option_type').value = optionTypeValue; // Set the hidden field value
-            } else {
-                document.getElementById('call').checked = true; // Default to Call
-                document.getElementById('option_type').value = 'call'; // Set default hidden value
             }
 
 
@@ -148,11 +176,11 @@
     
 
                 <div class="col-md-4 mb-3">
-                    <label for="method" class="form-label">Method:</label>
+                    <!-- <label for="method" class="form-label">Method:</label> -->
                     <select id="method" name="method" class="form-select" onchange="toggleInputs()">
                         <option value="BSM">Black-Scholes-Merton model</option>
-                        <option value="Binomial">Binomial Tree method</option>
-                        <option value="Trinomial">Trinomial Tree method</option>
+                        <option value="BT">Binomial Tree method</option>
+                        <option value="TT">Trinomial Tree method</option>
                         <option value="MC">Monte Carlo simulation</option>
                         <option value="LSMC">Least Squares Monte Carlo simulation</option>
                         <option value="JD">Jump-Diffusion process</option>
@@ -214,6 +242,14 @@
                 <div class="col-md-4 mb-3">
                     <label for="timestep" class="form-label">Timestep (dt):</label>
                     <input type="number" id="timestep" name="timestep" step="0.001" value="0.004" class="form-control">
+                </div>
+            </div>
+
+            <!-- Row 5: Binomial/Trinomial Tree Field -->
+            <div id="bt_tt_fields" class="row" style="display: none;">
+                <div class="col-md-6 mb-3">
+                    <label for="time_steps" class="form-label">Time steps:</label>
+                    <input type="number" id="time_steps" name="time_steps" step="10" value="300" class="form-control">
                 </div>
             </div>
 

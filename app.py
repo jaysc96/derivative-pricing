@@ -17,9 +17,11 @@ def calculate_price():
         kind = request.form['kind']
         method = request.form['method']
         show_greeks = request.form.get('showGreeks') == 'on'
-        print(kind, option_type)
 
-        SO = European_Option(option_type,S,K,r,sig,y,T)
+        if kind == 'european':
+            SO = European_Option(option_type,S,K,r,sig,y,T)
+        else:
+            SO = American_Option(option_type,S,K,r,sig,y,T)
 
         if method == 'MC':
             seed = int(request.form['seed'])
@@ -27,7 +29,12 @@ def calculate_price():
             dt = float(request.form['timestep'])
             SO.setSeedVariables(seed=seed,n=n,dt=dt)
 
+        if method in ['BT','TT']:
+            n = int(request.form['time_steps'])
+            SO.setTreeSteps(n=n)
+
         res = SO.priceOption(method=method, greeks=show_greeks)
+        
         if show_greeks:
             price = res['price']
             del res['price']
