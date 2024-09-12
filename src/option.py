@@ -68,8 +68,9 @@ class European_Option(Option):
         return Ota_est
     
     def greeks(self, eps=0.5, method='MC'):
-        time_eps = eps / 360
+        time_eps = 0.05
         sig_eps = eps / 100
+        
         O = self.priceOption(method=method)
         self.S0 += eps
         Op = self.priceOption(method=method)
@@ -83,7 +84,7 @@ class European_Option(Option):
         self.T += time_eps
         OTp = self.priceOption(method=method)
         self.T -= time_eps
-        theta = (OTp - O) / time_eps
+        theta = (O - OTp) / time_eps
 
         self.sig += sig_eps
         OSigp = self.priceOption(method=method)
