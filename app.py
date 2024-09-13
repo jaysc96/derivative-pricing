@@ -28,13 +28,16 @@ def calculate_price():
             n = int(request.form['iterations'])
             dt = float(request.form['timestep'])
             SO.setSeedVariables(seed=seed,n=n,dt=dt)
-
-        if method in ['BT','TT']:
+        elif method == 'LSMC':
+            seed = int(request.form['seed'])
+            n = int(request.form['iterations'])
+            SO.setSeedVariables(seed=seed,n=n)
+        elif method in ['BT','TT']:
             n = int(request.form['time_steps'])
             SO.setTreeSteps(n=n)
 
         res = SO.priceOption(method=method, greeks=show_greeks)
-        
+
         if show_greeks:
             price = res['price']
             del res['price']

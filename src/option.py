@@ -21,7 +21,7 @@ class Option:
         # self.start_date = start_date
         # self.end_date = end_date
 
-    def setSeedVariables(self, n, dt, seed):
+    def setSeedVariables(self, seed, n, dt=None):
         self.n = n
         self.dt = dt
         self.seed = seed
@@ -71,6 +71,8 @@ class Option:
             return self.BT()
         if method == 'TT':
             return self.TT()
+        if method == 'LSMC':
+            return self.LSMC()
 
 class European_Option(Option):
     def BSM(self, greeks=False):
@@ -195,3 +197,45 @@ class American_Option(Option):
                 Ot[j] = max(ev[j], np.exp(-self.r * dt) * (pu * O[j] + pm * O[j+1] + pd * O[j+2]))
             O = Ot
         return O[0]
+    
+    def LSMC(self):
+        m = int(np.sqrt(self.n))
+        dt = self.T / m
+        mu = self.r - self.y - self.sig**2 / 2
+        
+        np.random.seed(self.seed)
+        Z = np.random.normal(size=(self.n // 2, m))
+
+        St = np.zeros((self.n, m + 1))
+        St[:,0] = self.S0
+
+        Index = np.zeros((self.n, m))
+
+        for i in range(m):
+            St[:self.n // 2, i + 1] = St[:self.n // 2, i] * np.exp(mu * dt + self.sig * np.sqrt(dt) * Z[:,i])
+            St[self.n // 2:, i + 1] = St[self.n // 2:, i] * np.exp(mu * dt - self.sig * np.sqrt(dt) * Z[:,i])
+        St = St[:, 1:]
+        St = St / self.K
+        
+        EV = np.zeros((self.n, m))
+        EV[:, -1] = np.maximum(self.phi * (St[:, -1] - 1), 0)
+        Index[:, -1] = np.where(EV[:, -1] > 0, 1, 0)
+
+        for i in range(m - 2, -1, -1):
+            EV[:, i] = np.maximum(self.phi * (St[:, i] - 1), 0)
+
+            ITM = np.where(EV[:, i] > 0)[0]
+            Y = (Index[ITM, i + 1:] * EV[ITM, i + 1:] * np.exp(-self.r * np.arange(1, m - i) * dt)).sum(axis=1)
+
+            # f = poly(St[ITM,i],k)
+            f = np.array([St[ITM, i]**j for j in range(4)])
+            A = np.dot(f, f.T)
+            b = np.dot(f, Y)
+            a = np.linalg.solve(A, b)
+            ECV = np.dot(f.T, a)
+
+            Index[ITM[EV[ITM, i] >= ECV], i] = 1
+            Index[ITM[EV[ITM, i] >= ECV], i + 1:] = 0
+
+        V0 = (Index * EV * np.exp(-self.r * np.arange(1, m + 1) * dt)).sum(axis=1)
+        return self.K * V0.mean()

@@ -16,13 +16,15 @@
 
             // Get the method dropdown
             const methodSelect = document.getElementById('method');
-            // Define the options that need to be hidden for American option
+            // Define the options that need to be hidden for each option kind
             const bsmOption = methodSelect.querySelector('option[value="BSM"]');
             const mcOption = methodSelect.querySelector('option[value="MC"]');
+            const lsmcOption = methodSelect.querySelector('option[value="LSMC"]')
             if (kind === 'american') {
-                // Hide BSM and MC for American option
+                // Hide BSM and MC and show LSMC for American option
                 bsmOption.style.display = 'none';
                 mcOption.style.display = 'none';
+                lsmcOption.style.display = 'block';
 
                 // Automatically switch to another method if currently selected one is hidden
                 if (methodSelect.value === 'BSM' || methodSelect.value === 'MC') {
@@ -30,9 +32,16 @@
                     toggleInputs();
                 }
             } else {
-                // Show BSM and MC for European option
+                // Show BSM and MC and hide LSMC for European option
                 bsmOption.style.display = 'block';
                 mcOption.style.display = 'block';
+                lsmcOption.style.display = 'none';
+
+                // Automatically switch to another method if currently selected one is hidden
+                if (methodSelect.value === 'LSMC') {
+                    methodSelect.value = 'BSM'; // Default to Black-Scholes-Merton Model
+                    toggleInputs();
+                }
             }
         }
 
@@ -48,8 +57,9 @@
 
         function toggleInputs() {
             const method = document.getElementById('method').value;
-            const mcFields = document.getElementById('mc_fields');
+            const mclsmcFields = document.getElementById('mc_lsmc_fields');
             const btttFields = document.getElementById('bt_tt_fields');
+            const mcField = document.getElementById('mc_field');
 
             // Show Tree inputs if the method is Binomial or Trinomial Tree
             if (method === 'BT' || method === 'TT') {
@@ -58,7 +68,15 @@
                 btttFields.style.display = 'none';
             }
             // Show Monte Carlo inputs if the method is Monte Carlo
-            mcFields.style.display = (method === 'MC') ? 'flex' : 'none';
+            if (method === 'MC') {
+                mclsmcFields.style.display = 'flex';
+            } else if (method === 'LSMC') {
+                mclsmcFields.style.display = 'flex';
+                mcField.style.display = 'none';
+            } else {
+                mclsmcFields.style.display = 'none';
+            }
+            // mclsmcFields.style.display = (method === 'MC') ? 'flex' : 'none';
         }
 
         function saveState() {
@@ -85,17 +103,14 @@
             if (kindValue) {
                 setOptionKind(kindValue);
             } else {
-                document.getElementById('european').checked = true; // Default to European
-                document.getElementById('kind').value = 'european'; // Set default hidden value
+                setOptionKind('european'); // Set default hidden value
             }
 
             // Restore radio button state for option type
             if (optionTypeValue) {
-                document.getElementById(optionTypeValue).checked = true; // Set the radio button checked
-                document.getElementById('option_type').value = optionTypeValue; // Set the hidden field value
+                setOptionType(optionTypeValue);
             } else {
-                document.getElementById('call').checked = true; // Default to Call
-                document.getElementById('option_type').value = 'call'; // Set default hidden value
+                setOptionType('call');
             }
 
 
@@ -227,8 +242,8 @@
                 </div>
             </div>
 
-            <!-- Row 4: Monte Carlo Fields -->
-            <div id="mc_fields" class="row" style="display: none;">
+            <!-- Optional Row: Monte Carlo Fields -->
+            <div id="mc_lsmc_fields" class="row" style="display: none;">
                 <div class="col-md-4 mb-3">
                     <label for="seed" class="form-label">Random seed:</label>
                     <input type="number" id="seed" name="seed" step="1" value="42" class="form-control">
@@ -239,13 +254,13 @@
                     <input type="number" id="iterations" name="iterations" step="100" value="10000" class="form-control">
                 </div>
 
-                <div class="col-md-4 mb-3">
+                <div id='mc_field' class="col-md-4 mb-3">
                     <label for="timestep" class="form-label">Timestep (dt):</label>
                     <input type="number" id="timestep" name="timestep" step="0.001" value="0.004" class="form-control">
                 </div>
             </div>
 
-            <!-- Row 5: Binomial/Trinomial Tree Field -->
+            <!-- Optional Row: Binomial/Trinomial Tree Field -->
             <div id="bt_tt_fields" class="row" style="display: none;">
                 <div class="col-md-6 mb-3">
                     <label for="time_steps" class="form-label">Time steps:</label>
