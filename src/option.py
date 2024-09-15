@@ -29,6 +29,11 @@ class Option:
     def setTreeSteps(self, n):
         self.n = n
 
+    def setFDVariables(self, S_min, S_max, dt):
+        self.S_min = S_min
+        self.S_max = S_max
+        self.dt = dt
+
     def greeks(self, eps=0.5, method='BT'):
         time_eps = 0.05
         sig_eps = eps / 100
@@ -153,7 +158,7 @@ class European_Option(Option):
                 Ot[j] = np.exp(-self.r * dt) * (pu * O[j] + pm * O[j+1] + pd * O[j+2])
             O = Ot
         return O[0]
-    
+        
 class American_Option(Option):
     def BT(self):
         dt = self.T / self.n

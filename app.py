@@ -35,6 +35,11 @@ def calculate_price():
         elif method in ['BT','TT']:
             n = int(request.form['time_steps'])
             SO.setTreeSteps(n=n)
+        elif method == 'FD':
+            S_min = float(request.form['stock_min_price'])
+            S_max = float(request.form['stock_max_price'])
+            dt = float(request.form['timestep'])
+            SO.setFDVariables(S_min=S_min,S_max=S_max,dt=dt)
 
         res = SO.priceOption(method=method, greeks=show_greeks)
 

@@ -59,7 +59,12 @@
             const method = document.getElementById('method').value;
             const mclsmcFields = document.getElementById('mc_lsmc_fields');
             const btttFields = document.getElementById('bt_tt_fields');
-            const mcField = document.getElementById('mc_field');
+            const iterField = document.getElementById('iter_field');
+            const seedField = document.getElementById('seed_field');
+            const timestepField = document.getElementById('timestep_field');
+            const stockField = document.getElementById('stock_price_field');
+            const stockMinField = document.getElementById('fd_stock_min_field');
+            const stockMaxField = document.getElementById('fd_stock_max_field');
 
             // Show Tree inputs if the method is Binomial or Trinomial Tree
             if (method === 'BT' || method === 'TT') {
@@ -67,16 +72,40 @@
             } else {
                 btttFields.style.display = 'none';
             }
+
             // Show Monte Carlo inputs if the method is Monte Carlo
             if (method === 'MC') {
                 mclsmcFields.style.display = 'flex';
+                timestepField.style.display = 'block';
+                seedField.style.display = 'block';
+                iterField.style.display = 'block';
             } else if (method === 'LSMC') {
                 mclsmcFields.style.display = 'flex';
-                mcField.style.display = 'none';
+                timestepField.style.display = 'none';
+                seedField.style.display = 'block';
+                iterField.style.display = 'block';
+            } else if (method === 'FD') {
+                mclsmcFields.style.display = 'flex'
+                timestepField.style.display = 'block';
+                seedField.style.display = 'none';
+                iterField.style.display = 'none';
             } else {
                 mclsmcFields.style.display = 'none';
+                timestepField.style.display = 'block';
+                seedField.style.display = 'block';
+                iterField.style.display = 'block';
             }
-            // mclsmcFields.style.display = (method === 'MC') ? 'flex' : 'none';
+            
+            // Show Finite Difference inputs if the method is Finite Differencing
+            if (method === 'FD') {
+                stockField.style.display = 'none';
+                stockMinField.style.display = 'block';
+                stockMaxField.style.display = 'block';
+            } else {
+                stockMinField.style.display = 'none';
+                stockMaxField.style.display = 'none';
+                stockField.style.display = 'block';
+            }
         }
 
         function saveState() {
@@ -171,10 +200,10 @@
                 <div class="col-md-4 mb-3">
                     <div class="btn-group" role="group" aria-label="Option Kind">
                         <input type="radio" class="btn-check" name="kind" id="european" value="european" autocomplete="off" checked>
-                        <label class="btn btn-outline-warning" for="european" onclick="setOptionKind('european')">European</label>
+                        <label class="btn btn-outline-secondary" for="european" onclick="setOptionKind('european')">European</label>
                 
                         <input type="radio" class="btn-check" name="kind" id="american" value="american" autocomplete="off">
-                        <label class="btn btn-outline-primary" for="american" onclick="setOptionKind('american')">American</label>
+                        <label class="btn btn-outline-info" for="american" onclick="setOptionKind('american')">American</label>
                     </div>
                 </div>
     
@@ -191,81 +220,115 @@
     
 
                 <div class="col-md-4 mb-3">
-                    <!-- <label for="method" class="form-label">Method:</label> -->
-                    <select id="method" name="method" class="form-select" onchange="toggleInputs()">
-                        <option value="BSM">Black-Scholes-Merton model</option>
-                        <option value="BT">Binomial Tree method</option>
-                        <option value="TT">Trinomial Tree method</option>
-                        <option value="MC">Monte Carlo simulation</option>
-                        <option value="LSMC">Least Squares Monte Carlo simulation</option>
-                        <option value="EFM">Explicit Finite Difference method</option>
-                        <option value="IFM">Implicit Finite Difference method</option>
-                        <option value="CNFM">Crank-Nicolson Finite Difference method</option>
-                    </select>
+                    <div class="form-floating">
+                        <select id="method" name="method" class="form-select" onchange="toggleInputs()">
+                            <option value="BSM">Black-Scholes-Merton model</option>
+                            <option value="BT">Binomial Tree method</option>
+                            <option value="TT">Trinomial Tree method</option>
+                            <option value="MC">Monte Carlo simulation</option>
+                            <option value="LSMC">Least Squares Monte Carlo simulation</option>
+                            <option value="FD">Finite Difference method</option>
+                        </select>
+                        <label for="method" class="form-label">Evaluation method</label>
+                    </div>
+                    
                 </div>
             </div>
 
             <!-- Row 2: Stock Price, Strike Price, Time to Expiry -->
             <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="stock_price" class="form-label">Stock Price (S):</label>
-                    <input type="number" id="stock_price" name="stock_price" step="1" value="100" class="form-control" required>
+                <div id="stock_price_field" class="col-md-4 mb-3">
+                    <div class="form-floating">
+                        <input type="number" id="stock_price" name="stock_price" step="1" value="100" class="form-control" required>
+                        <label for="stock_price" class="form-label">Stock Price (S):</label>
+                    </div>
+                </div>
+                
+                <div id="fd_stock_min_field" class="col-md-2 mb-3" style="display: none;">
+                    <div class="form-floating">
+                        <input type="number" id="stock_min_price" name="stock_min_price" step="1" value="90" class="form-control" required>
+                        <label for="stock_min_price" class="form-label">Minimum Stock Price:</label>
+                    </div>
+                </div>
+                <div id="fd_stock_max_field" class="col-md-2 mb-3" style="display: none;">
+                    <div class="form-floating">
+                        <input type="number" id="stock_max_price" name="stock_max_price" step="1" value="110" class="form-control" required>
+                        <label for="stock_max_price" class="form-label">Maximum Stock Price:</label>
+                    </div>
                 </div>
 
                 <div class="col-md-4 mb-3">
-                    <label for="strike_price" class="form-label">Strike Price (K):</label>
-                    <input type="number" id="strike_price" name="strike_price" step="1" value="100" class="form-control" required>
+                    <div class="form-floating">
+                        <input type="number" id="strike_price" name="strike_price" step="1" value="100" class="form-control" required>
+                        <label for="strike_price" class="form-label">Strike Price (K):</label>
+                    </div>
                 </div>
 
                 <div class="col-md-4 mb-3">
-                    <label for="time_to_expiry" class="form-label">Time to Expiry (T in years):</label>
-                    <input type="number" id="time_to_expiry" name="time_to_expiry" step="0.1" value="1"  class="form-control" required>
+                    <div class="form-floating">
+                        <input type="number" id="time_to_expiry" name="time_to_expiry" step="0.1" value="1" class="form-control" required>
+                        <label for="time_to_expiry" class="form-label">Time to Expiry (T in years):</label>
+                    </div>
                 </div>
             </div>
-
+            
             <!-- Row 3: Risk-Free Rate, Yield Rate, Volatility -->
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <label for="risk_free_rate" class="form-label">Risk-Free Rate (r as decimal):</label>
-                    <input type="number" id="risk_free_rate" name="risk_free_rate" step="0.01" value="0.05" class="form-control" required>
+                    <div class="form-floating">
+                        <input type="number" id="risk_free_rate" name="risk_free_rate" step="0.01" value="0.05" class="form-control" required>
+                        <label for="risk_free_rate" class="form-label">Risk-Free Rate (r as decimal):</label>
+                    </div>
                 </div>
-
+            
                 <div class="col-md-4 mb-3">
-                    <label for="yield_rate" class="form-label">Yield Rate (y as decimal):</label>
-                    <input type="number" id="yield_rate" name="yield_rate" step="0.01" value="0" class="form-control">
+                    <div class="form-floating">
+                        <input type="number" id="yield_rate" name="yield_rate" step="0.01" value="0" class="form-control">
+                        <label for="yield_rate" class="form-label">Yield Rate (y as decimal):</label>
+                    </div>
                 </div>
-
+            
                 <div class="col-md-4 mb-3">
-                    <label for="volatility" class="form-label">Volatility (σ as decimal):</label>
-                    <input type="number" id="volatility" name="volatility" step="0.01" value="0.15" class="form-control" required>
+                    <div class="form-floating">
+                        <input type="number" id="volatility" name="volatility" step="0.01" value="0.15" class="form-control" required>
+                        <label for="volatility" class="form-label">Volatility (σ as decimal):</label>
+                    </div>
                 </div>
             </div>
-
+            
             <!-- Optional Row: Monte Carlo Fields -->
             <div id="mc_lsmc_fields" class="row" style="display: none;">
-                <div class="col-md-4 mb-3">
-                    <label for="seed" class="form-label">Random seed:</label>
-                    <input type="number" id="seed" name="seed" step="1" value="42" class="form-control">
+                <div id="seed_field" class="col-md-4 mb-3">
+                    <div class="form-floating">
+                        <input type="number" id="seed" name="seed" step="1" value="42" class="form-control">
+                        <label for="seed" class="form-label">Random seed:</label>
+                    </div>
                 </div>
-
-                <div class="col-md-4 mb-3">
-                    <label for="iterations" class="form-label">Iterations (n):</label>
-                    <input type="number" id="iterations" name="iterations" step="100" value="10000" class="form-control">
+            
+                <div id="iter_field" class="col-md-4 mb-3">
+                    <div class="form-floating">
+                        <input type="number" id="iterations" name="iterations" step="100" value="10000" class="form-control">
+                        <label for="iterations" class="form-label">Iterations (n):</label>
+                    </div>
                 </div>
-
-                <div id='mc_field' class="col-md-4 mb-3">
-                    <label for="timestep" class="form-label">Timestep (dt):</label>
-                    <input type="number" id="timestep" name="timestep" step="0.001" value="0.004" class="form-control">
+            
+                <div id="timestep_field" class="col-md-4 mb-3">
+                    <div class="form-floating">
+                        <input type="number" id="timestep" name="timestep" step="0.001" value="0.004" class="form-control">
+                        <label for="timestep" class="form-label">Timestep (dt):</label>
+                    </div>
                 </div>
             </div>
-
+            
             <!-- Optional Row: Binomial/Trinomial Tree Field -->
             <div id="bt_tt_fields" class="row" style="display: none;">
                 <div class="col-md-6 mb-3">
-                    <label for="time_steps" class="form-label">Time steps:</label>
-                    <input type="number" id="time_steps" name="time_steps" step="10" value="300" class="form-control">
+                    <div class="form-floating">
+                        <input type="number" id="time_steps" name="time_steps" step="10" value="300" class="form-control">
+                        <label for="time_steps" class="form-label">Time steps:</label>
+                    </div>
                 </div>
-            </div>
+            </div>    
 
             <!-- Checkbox and Button Row -->
             <div class="row align-items-center">
