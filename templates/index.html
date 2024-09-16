@@ -168,8 +168,21 @@
 
 
             // Call toggleInputs to display the correct fields
+            hideSpinner();
             toggleInputs();
             restoreScrollPosition();
+        }
+
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'inline-block'; // Show spinner
+            document.getElementById('submitButton').disabled = true; // Disable button to prevent multiple submissions
+            document.getElementById('buttonText').textContent = 'Calculating...'; // Change button text
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinner').style.display = 'none'; // Hide spinner
+            document.getElementById('submitButton').disabled = false; // Re-enable button
+            document.getElementById('buttonText').textContent = 'Calculate Price'; // Change button text
         }
 
         document.addEventListener('DOMContentLoaded', loadState);
@@ -189,7 +202,7 @@
 <body>
     <div class="container">
         <h1 class="text-center mb-5">Option Pricing Calculator</h1>
-        <form id="optionForm" action="/" method="post" onsubmit="saveState(); saveScrollPosition();">
+        <form id="optionForm" action="/" method="post" onsubmit="saveState(); saveScrollPosition(); showSpinner();">
             <!-- Hidden inputs for kind and option_type -->
             <input type="hidden" id="kind" name="kind" value="european">
             <input type="hidden" id="option_type" name="option_type" value="call">
@@ -342,7 +355,10 @@
                 </div>
 
                 <div class="col-md-6 mb-3 text-end">
-                    <button type="submit" class="btn btn-primary">Calculate Price</button>
+                    <button id="submitButton" type="submit" class="btn btn-primary">
+                        <span id="buttonText">Calculate Price</span>
+                        <span id="spinner" class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                    </button>              
                 </div>
             </div>
 
