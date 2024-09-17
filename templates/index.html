@@ -24,7 +24,10 @@
                 // Hide BSM and MC and show LSMC for American option
                 bsmOption.style.display = 'none';
                 mcOption.style.display = 'none';
+                bsmOption.disabled = true;
+                mcOption.disabled = true;
                 lsmcOption.style.display = 'block';
+                lsmcOption.disabled = false;
 
                 // Automatically switch to another method if currently selected one is hidden
                 if (methodSelect.value === 'BSM' || methodSelect.value === 'MC') {
@@ -36,6 +39,9 @@
                 bsmOption.style.display = 'block';
                 mcOption.style.display = 'block';
                 lsmcOption.style.display = 'none';
+                bsmOption.disabled = false;
+                mcOption.disabled = false;
+                lsmcOption.disabled = true;
 
                 // Automatically switch to another method if currently selected one is hidden
                 if (methodSelect.value === 'LSMC') {
