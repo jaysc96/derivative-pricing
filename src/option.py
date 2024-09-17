@@ -7,7 +7,7 @@ def n(t):
     return n
 
 class Option:
-    def __init__(self, option_type, initial_price, strike_price, interest_rate, volatility, dividend_rate, time, start_date=None, end_date=None) -> None:
+    def __init__(self, option_type, initial_price, strike_price, interest_rate, volatility, dividend_rate, time, method, start_date=None, end_date=None) -> None:
         self.option_type = option_type
         self.S0 = initial_price
         self.K = strike_price
@@ -18,6 +18,9 @@ class Option:
         self.phi = 1
         if option_type == 'put':
             self.phi = -1
+
+        self.method_name = method
+        self.method = getattr(self, method)
         # self.start_date = start_date
         # self.end_date = end_date
 
@@ -34,67 +37,54 @@ class Option:
         self.S_max = S_max
         self.dt = dt
 
-    def greeks(self, eps=0.5, method='BT'):
+    def priceOption(self, eps=0.5):
+        if self.method_name == 'BSM':
+            return self.method()
+        
         time_eps = 0.05
         sig_eps = eps / 100
 
-        O = self.priceOption(method=method)
+        O = self.method()
         self.S0 += eps
-        Op = self.priceOption(method=method)
+        Op = self.method()
         self.S0 -= 2 * eps
-        Om = self.priceOption(method=method)
+        Om = self.method()
         self.S0 += eps
 
         delta = (Op - Om) / 2 / eps
         gamma = (Op + Om - 2 * O) / (eps**2)
 
         self.T += time_eps
-        OTp = self.priceOption(method=method)
+        OTp = self.method()
         self.T -= time_eps
         theta = (O - OTp) / time_eps
 
         self.sig += sig_eps
-        OSigp = self.priceOption(method=method)
+        OSigp = self.method()
         self.sig -= sig_eps
         vega = (OSigp - O) / sig_eps
 
         self.r += sig_eps
-        Orp = self.priceOption(method=method)
+        Orp = self.method()
         self.r -= sig_eps
         rho = (Orp - O) / sig_eps 
 
-        return {"price": O, "delta": delta, "gamma": gamma, "theta": theta, "vega": vega, "rho": rho}
-
-    def priceOption(self, greeks=False, method='BSM'):
-        if method=='BSM':
-            return self.BSM(greeks=greeks)
-        if greeks:
-            return self.greeks(method=method)
-        if method == 'MC':
-            return self.MC()
-        if method == 'BT':
-            return self.BT()
-        if method == 'TT':
-            return self.TT()
-        if method == 'LSMC':
-            return self.LSMC()
+        return {"price": round(O, 2), "delta": round(delta, 2), "gamma": round(gamma, 2), "theta": round(theta, 2), "vega": round(vega, 2), "rho": round(rho, 2)}
 
 class European_Option(Option):
-    def BSM(self, greeks=False):
-
+    def BSM(self):
         zp = (np.log(self.S0 / self.K) + (self.r - self.y) * self.T) / (self.sig * np.sqrt(self.T)) + self.sig * np.sqrt(self.T) / 2
         zm = (np.log(self.S0 / self.K) + (self.r - self.y) * self.T) / (self.sig * np.sqrt(self.T)) - self.sig * np.sqrt(self.T) / 2
 
         O = self.phi * (self.S0 * np.exp(- self.y * self.T) * N(self.phi * zp) - self.K * np.exp(- self.r * self.T) * N(self.phi * zm))
-        if greeks:
-            delta = self.phi * np.exp(- self.y * self.T) * N(self.phi * zp)
-            rho = self.phi * self.K * self.T * np.exp(- self.r * self.T) * N(self.phi * zm)
-            gamma = np.exp(- self.y * self.T) * n(zp) / self.sig / np.sqrt(self.T) / self.S0
-            deltaK = - self.phi * np.exp(- self.r * self.T) * N(self.phi * zm)
-            theta = self.r * self.K * deltaK + self.y * self.S0 * delta - self.sig**2 * self.S0**2 * gamma / 2
-            vega = self.S0 * np.sqrt(self.T) * np.exp(- self.r * self.T) * n(zm)
-            return {"price": O, "delta": delta, "gamma": gamma, "theta": theta, "vega": vega, "rho": rho}
-        return O
+
+        delta = self.phi * np.exp(- self.y * self.T) * N(self.phi * zp)
+        rho = self.phi * self.K * self.T * np.exp(- self.r * self.T) * N(self.phi * zm)
+        gamma = np.exp(- self.y * self.T) * n(zp) / self.sig / np.sqrt(self.T) / self.S0
+        deltaK = - self.phi * np.exp(- self.r * self.T) * N(self.phi * zm)
+        theta = self.r * self.K * deltaK + self.y * self.S0 * delta - self.sig**2 * self.S0**2 * gamma / 2
+        vega = self.S0 * np.sqrt(self.T) * np.exp(- self.r * self.T) * n(zm)
+        return {"price": round(O, 2), "delta": round(delta, 2), "gamma": round(gamma, 2), "theta": round(theta, 2), "vega": round(vega, 2), "rho": round(rho, 2)}
     
     def MC(self):
         m = int(self.T / self.dt)

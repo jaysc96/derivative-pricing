@@ -16,12 +16,11 @@ def calculate_price():
         option_type = request.form['option_type']
         kind = request.form['kind']
         method = request.form['method']
-        show_greeks = request.form.get('showGreeks') == 'on'
 
         if kind == 'european':
-            SO = European_Option(option_type,S,K,r,sig,y,T)
+            SO = European_Option(option_type, S, K, r, sig, y, T, method)
         else:
-            SO = American_Option(option_type,S,K,r,sig,y,T)
+            SO = American_Option(option_type, S, K, r, sig, y, T, method)
 
         if method == 'MC':
             seed = int(request.form['seed'])
@@ -41,14 +40,12 @@ def calculate_price():
             dt = float(request.form['timestep'])
             SO.setFDVariables(S_min=S_min,S_max=S_max,dt=dt)
 
-        res = SO.priceOption(method=method, greeks=show_greeks)
+        res = SO.priceOption()
 
-        if show_greeks:
-            price = res['price']
-            del res['price']
-            greeks = res
-            return render_template('index.html',price=price,greeks=greeks)
-        return render_template('index.html',price=res)
+        price = res['price']
+        del res['price']
+        greeks = res
+        return render_template('index.html',price=price,greeks=greeks)
     else:
         return render_template('index.html')
 
