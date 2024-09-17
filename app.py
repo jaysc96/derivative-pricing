@@ -14,10 +14,10 @@ def calculate_price():
         y = float(request.form['yield_rate'])
         sig = float(request.form['volatility'])
         option_type = request.form['option_type']
-        kind = request.form['kind']
+        exercise_type = request.form['exercise_type']
         method = request.form['method']
 
-        if kind == 'european':
+        if exercise_type == 'european':
             SO = European_Option(option_type, S, K, r, sig, y, T, method)
         else:
             SO = American_Option(option_type, S, K, r, sig, y, T, method)
@@ -41,11 +41,7 @@ def calculate_price():
             SO.setFDVariables(S_min=S_min,S_max=S_max,dt=dt)
 
         res = SO.priceOption()
-
-        price = res['price']
-        del res['price']
-        greeks = res
-        return render_template('index.html',price=price,greeks=greeks)
+        return render_template('index.html',res=res)
     else:
         return render_template('index.html')
 
