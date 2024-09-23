@@ -195,8 +195,11 @@
     </script>
 
 <body>
-    <div class="container">
+    <header class="text-center p-3">
         <h1 class="text-center mb-5">Option Pricing Calculator</h1>
+    </header>
+    <div class="container">
+        
         <form id="optionForm" action="/" method="post" onsubmit="saveState(); saveScrollPosition(); showSpinner();">
             <!-- Hidden inputs for exercise_type and option_type -->
             <input type="hidden" id="exercise_type" name="exercise_type" value="european">
@@ -352,64 +355,30 @@
 
         </form>
 
-        {% if res %}
-        <h3 class="mt-3">Results:</h3>
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 mb-3">
-                    <div class="form-floating">
-                        <div class="form-control">
-                            {{ res.price }}
-                        </div>
-                        <label for="price">Price:</label>
-                    </div>
-                </div>
-                <div class="col-lg-4 mb-3">
-                    <div class="form-floating">
-                        <div class="form-control">
-                            {{ res.delta }}
-                        </div>
-                        <label for="delta">Delta 𝚫:</label>
-                    </div>
-                </div>
-                <div class="col-lg-4 mb-3">
-                    <div class="form-floating">
-                        <div class="form-control">
-                            {{ res.gamma }}
-                        </div>
-                        <label for="gamma">Gamma 𝚪:</label>
-                    </div>
+        {% if res_table_html %}
+            <h3 class="mt-3">Results:</h3>
+            <div class="container">
+                <!-- Render the table passed from backend -->
+                <div class="table-responsive">
+                    {{ res_table_html|safe }}
                 </div>
             </div>
-        
-            <div class="row">
-                <div class="col-lg-4 mb-3">
-                    <div class="form-floating">
-                        <div class="form-control">
-                            {{ res.theta }}
-                        </div>
-                        <label for="theta">Theta 𝚯:</label>
-                    </div>
-                </div>
-                <div class="col-lg-4 mb-3">
-                    <div class="form-floating">
-                        <div class="form-control">
-                            {{ res.vega }}
-                        </div>
-                        <label for="vega">Vega 𝓋:</label>
-                    </div>
-                </div>
-                <div class="col-lg-4 mb-3">
-                    <div class="form-floating">
-                        <div class="form-control">
-                            {{ res.rho }}
-                        </div>
-                        <label for="rho">Rho 𝛒:</label>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <script>
+                // Initialize tooltips
+                var tooltips = JSON.parse('{{ tooltips|tojson }}');
+                document.querySelectorAll('th').forEach(function(th) {
+                    var key = th.textContent.trim();
+                    if (tooltips[key]) {
+                        th.setAttribute('title', tooltips[key]);
+                        th.setAttribute('data-bs-toggle', 'tooltip');
+                        // new bootstrap.Tooltip(th);
+                    }
+                });
+            </script>
         {% endif %}
     </div>
+    <footer class="text-center p-3 mt-5"></footer>
+        <p>&copy; 2024 Jay Singh Chauhan</p>
+    </footer>
 </body>
 </html>
