@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "derivative-pricing"
+version = "0.1.0"
+description = "Option pricing library with six independently-implemented methods and implied volatility inversion"
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Floors are set to the versions this project is tested against rather than the
+# oldest that might work. numpy 2.x and pandas 2.2+ matter specifically: the
+# pricing code was originally written against numpy 1.24, and the 2.x line
+# changed enough that "it imports" is not the same claim as "it is tested".
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+]
+
+[project.optional-dependencies]
+app = [
+    "flask>=3.0",
+    "pandas>=2.2",
+]
+data = [
+    "yfinance>=1.5",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+# Package discovery is intentionally empty here. The pricing math currently
+# lives in src/option.py, which is not an importable package — U3 extracts it
+# into pricing/ and replaces this section with real package configuration.
+[tool.setuptools]
+packages = []
