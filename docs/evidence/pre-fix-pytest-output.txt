@@ -1,0 +1,926 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+........................................................................ [ 16%]
+....F.F.F.F......F.F.F.F....................F.F.F.F......F.F.F.F........ [ 22%]
+............F.F.F.F......F.F.F.F........................................ [ 27%]
+FFFFFFFFFFFFFFFFFFFF........................................FFFFFFFFFFFF [ 33%]
+FFFFFFFF....................FFFFFFFFFFFFFFFFFFFF....................FFFF [ 38%]
+FFFFFFFFFFFFFFFF....................F.F.F.F......F.F.F.F................ [ 44%]
+....F.F.F.F......F.F.F.F....................F.F.F.F......F.F.F.F........ [ 49%]
+..........F...FF....F....F....F....F....F..F.F.......F.........F......F. [ 55%]
+.F.F....F..F.F....F..F.F....F..F.F...................................... [ 61%]
+........................................................................ [ 66%]
+........................................................................ [ 72%]
+........................................................................ [ 77%]
+........................................................................ [ 83%]
+........................................................................ [ 88%]
+........................................................................ [ 94%]
+........................................................................ [ 99%]
+.                                                                        [100%]
+=================================== FAILURES ===================================
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   AssertionError: assert np.float64(0.15370401844703951) <= 0.1
+     +  where np.float64(0.15370401844703951) = abs((np.float64(0.8570754573350321) - 1.0107794757820716))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 1.0107794757820716)
+     +    where 1.0107794757820716 = max(np.float64(0.8570754573350321), 1.0107794757820716)
+     +      where np.float64(0.8570754573350321) = abs(np.float64(0.8570754573350321))
+     +      and   1.0107794757820716 = abs(1.0107794757820716)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.15370401844703951) <= 0.1
+E   AssertionError: assert np.float64(1.0293494344214977) <= np.float64(0.1174746689515398)
+     +  where np.float64(1.0293494344214977) = abs((np.float64(19.5791114919233) - 18.549762057501802))
+     +  and   np.float64(0.1174746689515398) = pair_tolerance('BSM', 'MC', np.float64(19.5791114919233))
+     +    where np.float64(19.5791114919233) = max(np.float64(19.5791114919233), 18.549762057501802)
+     +      where np.float64(19.5791114919233) = abs(np.float64(19.5791114919233))
+     +      and   18.549762057501802 = abs(18.549762057501802)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.0293494344214977) <= np.float64(0.1174746689515398)
+E   AssertionError: assert np.float64(0.6007599351316371) <= 0.1
+     +  where np.float64(0.6007599351316371) = abs((np.float64(2.514110328592942) - 3.114870263724579))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 3.114870263724579)
+     +    where 3.114870263724579 = max(np.float64(2.514110328592942), 3.114870263724579)
+     +      where np.float64(2.514110328592942) = abs(np.float64(2.514110328592942))
+     +      and   3.114870263724579 = abs(3.114870263724579)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.6007599351316371) <= 0.1
+E   AssertionError: assert np.float64(1.7474997354815862) <= np.float64(0.12000846056870221)
+     +  where np.float64(1.7474997354815862) = abs((np.float64(20.0014100947837) - 18.253910359302115))
+     +  and   np.float64(0.12000846056870221) = pair_tolerance('BSM', 'MC', np.float64(20.0014100947837))
+     +    where np.float64(20.0014100947837) = max(np.float64(20.0014100947837), 18.253910359302115)
+     +      where np.float64(20.0014100947837) = abs(np.float64(20.0014100947837))
+     +      and   18.253910359302115 = abs(18.253910359302115)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.7474997354815862) <= np.float64(0.12000846056870221)
+E   AssertionError: assert np.float64(0.439260361420883) <= 0.1
+     +  where np.float64(0.439260361420883) = abs((np.float64(3.049682077546457) - 3.48894243896734))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 3.48894243896734)
+     +    where 3.48894243896734 = max(np.float64(3.049682077546457), 3.48894243896734)
+     +      where np.float64(3.049682077546457) = abs(np.float64(3.049682077546457))
+     +      and   3.48894243896734 = abs(3.48894243896734)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.439260361420883) <= 0.1
+E   AssertionError: assert np.float64(0.8916747730562147) <= 0.1
+     +  where np.float64(0.8916747730562147) = abs((np.float64(11.920598716104095) - 11.02892394304788))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(11.920598716104095))
+     +    where np.float64(11.920598716104095) = max(np.float64(11.920598716104095), 11.02892394304788)
+     +      where np.float64(11.920598716104095) = abs(np.float64(11.920598716104095))
+     +      and   11.02892394304788 = abs(11.02892394304788)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.8916747730562147) <= 0.1
+E   AssertionError: assert np.float64(1.1382424075414113) <= 0.1
+     +  where np.float64(1.1382424075414113) = abs((np.float64(5.704783817456242) - 6.8430262249976535))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 6.8430262249976535)
+     +    where 6.8430262249976535 = max(np.float64(5.704783817456242), 6.8430262249976535)
+     +      where np.float64(5.704783817456242) = abs(np.float64(5.704783817456242))
+     +      and   6.8430262249976535 = abs(6.8430262249976535)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.1382424075414113) <= 0.1
+E   AssertionError: assert np.float64(1.5035497218984357) <= 0.1
+     +  where np.float64(1.5035497218984357) = abs((np.float64(13.48762824816189) - 11.984078526263454))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(13.48762824816189))
+     +    where np.float64(13.48762824816189) = max(np.float64(13.48762824816189), 11.984078526263454)
+     +      where np.float64(13.48762824816189) = abs(np.float64(13.48762824816189))
+     +      and   11.984078526263454 = abs(11.984078526263454)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.5035497218984357) <= 0.1
+E   AssertionError: assert np.float64(0.8313634668009477) <= 0.1
+     +  where np.float64(0.8313634668009477) = abs((np.float64(7.404935111103541) - 8.236298577904488))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 8.236298577904488)
+     +    where 8.236298577904488 = max(np.float64(7.404935111103541), 8.236298577904488)
+     +      where np.float64(7.404935111103541) = abs(np.float64(7.404935111103541))
+     +      and   8.236298577904488 = abs(8.236298577904488)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.8313634668009477) <= 0.1
+E   AssertionError: assert np.float64(0.6474533492847092) <= 0.1
+     +  where np.float64(0.6474533492847092) = abs((np.float64(6.424732353630546) - 5.777279004345837))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(6.424732353630546))
+     +    where np.float64(6.424732353630546) = max(np.float64(6.424732353630546), 5.777279004345837)
+     +      where np.float64(6.424732353630546) = abs(np.float64(6.424732353630546))
+     +      and   5.777279004345837 = abs(5.777279004345837)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.6474533492847092) <= 0.1
+E   AssertionError: assert np.float64(1.7494440796725854) <= 0.1
+     +  where np.float64(1.7494440796725854) = abs((np.float64(10.549284934339425) - 12.298729014012011))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 12.298729014012011)
+     +    where 12.298729014012011 = max(np.float64(10.549284934339425), 12.298729014012011)
+     +      where np.float64(10.549284934339425) = abs(np.float64(10.549284934339425))
+     +      and   12.298729014012011 = abs(12.298729014012011)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.7494440796725854) <= 0.1
+E   AssertionError: assert np.float64(1.185880508593919) <= 0.1
+     +  where np.float64(1.185880508593919) = abs((np.float64(8.627674029559998) - 7.441793520966079))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(8.627674029559998))
+     +    where np.float64(8.627674029559998) = max(np.float64(8.627674029559998), 7.441793520966079)
+     +      where np.float64(8.627674029559998) = abs(np.float64(8.627674029559998))
+     +      and   7.441793520966079 = abs(7.441793520966079)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.185880508593919) <= 0.1
+E   AssertionError: assert np.float64(1.232288094669732) <= 0.1
+     +  where np.float64(1.232288094669732) = abs((np.float64(13.91156918472457) - 15.143857279394302))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', 15.143857279394302)
+     +    where 15.143857279394302 = max(np.float64(13.91156918472457), 15.143857279394302)
+     +      where np.float64(13.91156918472457) = abs(np.float64(13.91156918472457))
+     +      and   15.143857279394302 = abs(15.143857279394302)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.232288094669732) <= 0.1
+E   AssertionError: assert np.float64(0.39441040302446373) <= 0.1
+     +  where np.float64(0.39441040302446373) = abs((np.float64(3.0802470312209067) - 2.685836628196443))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(3.0802470312209067))
+     +    where np.float64(3.0802470312209067) = max(np.float64(3.0802470312209067), 2.685836628196443)
+     +      where np.float64(3.0802470312209067) = abs(np.float64(3.0802470312209067))
+     +      and   2.685836628196443 = abs(2.685836628196443)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.39441040302446373) <= 0.1
+E   AssertionError: assert np.float64(2.374309482883188) <= 0.11562425642532834
+     +  where np.float64(2.374309482883188) = abs((np.float64(16.8963999213382) - 19.27070940422139))
+     +  and   0.11562425642532834 = pair_tolerance('BSM', 'MC', 19.27070940422139)
+     +    where 19.27070940422139 = max(np.float64(16.8963999213382), 19.27070940422139)
+     +      where np.float64(16.8963999213382) = abs(np.float64(16.8963999213382))
+     +      and   19.27070940422139 = abs(19.27070940422139)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(2.374309482883188) <= 0.11562425642532834
+E   AssertionError: assert np.float64(0.8545475642099953) <= 0.1
+     +  where np.float64(0.8545475642099953) = abs((np.float64(5.270333681073701) - 4.415786116863706))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(5.270333681073701))
+     +    where np.float64(5.270333681073701) = max(np.float64(5.270333681073701), 4.415786116863706)
+     +      where np.float64(5.270333681073701) = abs(np.float64(5.270333681073701))
+     +      and   4.415786116863706 = abs(4.415786116863706)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.8545475642099953) <= 0.1
+E   AssertionError: assert np.float64(1.562855440606974) <= 0.14145463110487658
+     +  where np.float64(1.562855440606974) = abs((np.float64(22.01291641020579) - 23.575771850812764))
+     +  and   0.14145463110487658 = pair_tolerance('BSM', 'MC', 23.575771850812764)
+     +    where 23.575771850812764 = max(np.float64(22.01291641020579), 23.575771850812764)
+     +      where np.float64(22.01291641020579) = abs(np.float64(22.01291641020579))
+     +      and   23.575771850812764 = abs(23.575771850812764)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(1.562855440606974) <= 0.14145463110487658
+E   AssertionError: assert np.float64(0.21172473869581676) <= 0.1
+     +  where np.float64(0.21172473869581676) = abs((np.float64(1.3304748606715435) - 1.1187501219757268))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(1.3304748606715435))
+     +    where np.float64(1.3304748606715435) = max(np.float64(1.3304748606715435), 1.1187501219757268)
+     +      where np.float64(1.3304748606715435) = abs(np.float64(1.3304748606715435))
+     +      and   1.1187501219757268 = abs(1.1187501219757268)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.21172473869581676) <= 0.1
+E   AssertionError: assert np.float64(2.938971509499588) <= 0.16419976875722944
+     +  where np.float64(2.938971509499588) = abs((np.float64(24.42765661670532) - 27.36662812620491))
+     +  and   0.16419976875722944 = pair_tolerance('BSM', 'MC', 27.36662812620491)
+     +    where 27.36662812620491 = max(np.float64(24.42765661670532), 27.36662812620491)
+     +      where np.float64(24.42765661670532) = abs(np.float64(24.42765661670532))
+     +      and   27.36662812620491 = abs(27.36662812620491)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(2.938971509499588) <= 0.16419976875722944
+E   AssertionError: assert np.float64(0.5834179964202479) <= 0.1
+     +  where np.float64(0.5834179964202479) = abs((np.float64(3.097135040955756) - 2.513717044535508))
+     +  and   0.1 = pair_tolerance('BSM', 'MC', np.float64(3.097135040955756))
+     +    where np.float64(3.097135040955756) = max(np.float64(3.097135040955756), 2.513717044535508)
+     +      where np.float64(3.097135040955756) = abs(np.float64(3.097135040955756))
+     +      and   2.513717044535508 = abs(2.513717044535508)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert np.float64(0.5834179964202479) <= 0.1
+E   AssertionError: assert 0.15745923813605 <= 0.13
+     +  where 0.15745923813605 = abs((0.8533202376460216 - 1.0107794757820716))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 1.0107794757820716)
+     +    where 1.0107794757820716 = max(0.8533202376460216, 1.0107794757820716)
+     +      where 0.8533202376460216 = abs(0.8533202376460216)
+     +      and   1.0107794757820716 = abs(1.0107794757820716)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.15745923813605 <= 0.13
+E   AssertionError: assert 1.025594214732461 <= 0.19575356272234262
+     +  where 1.025594214732461 = abs((19.575356272234263 - 18.549762057501802))
+     +  and   0.19575356272234262 = pair_tolerance('BT', 'MC', 19.575356272234263)
+     +    where 19.575356272234263 = max(19.575356272234263, 18.549762057501802)
+     +      where 19.575356272234263 = abs(19.575356272234263)
+     +      and   18.549762057501802 = abs(18.549762057501802)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.025594214732461 <= 0.19575356272234262
+E   AssertionError: assert 0.597958148423475 <= 0.13
+     +  where 0.597958148423475 = abs((2.516912115301104 - 3.114870263724579))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 3.114870263724579)
+     +    where 3.114870263724579 = max(2.516912115301104, 3.114870263724579)
+     +      where 2.516912115301104 = abs(2.516912115301104)
+     +      and   3.114870263724579 = abs(3.114870263724579)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.597958148423475 <= 0.13
+E   AssertionError: assert 1.750301522188991 <= 0.20004211881491107
+     +  where 1.750301522188991 = abs((20.004211881491106 - 18.253910359302115))
+     +  and   0.20004211881491107 = pair_tolerance('BT', 'MC', 20.004211881491106)
+     +    where 20.004211881491106 = max(20.004211881491106, 18.253910359302115)
+     +      where 20.004211881491106 = abs(20.004211881491106)
+     +      and   18.253910359302115 = abs(18.253910359302115)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.750301522188991 <= 0.20004211881491107
+E   AssertionError: assert 0.43797863545984983 <= 0.13
+     +  where 0.43797863545984983 = abs((3.05096380350749 - 3.48894243896734))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 3.48894243896734)
+     +    where 3.48894243896734 = max(3.05096380350749, 3.48894243896734)
+     +      where 3.05096380350749 = abs(3.05096380350749)
+     +      and   3.48894243896734 = abs(3.48894243896734)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.43797863545984983 <= 0.13
+E   AssertionError: assert 0.8929564990169734 <= 0.13
+     +  where 0.8929564990169734 = abs((11.921880442064854 - 11.02892394304788))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 11.921880442064854)
+     +    where 11.921880442064854 = max(11.921880442064854, 11.02892394304788)
+     +      where 11.921880442064854 = abs(11.921880442064854)
+     +      and   11.02892394304788 = abs(11.02892394304788)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8929564990169734 <= 0.13
+E   AssertionError: assert 1.1481801318593465 <= 0.13
+     +  where 1.1481801318593465 = abs((5.694846093138307 - 6.8430262249976535))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 6.8430262249976535)
+     +    where 6.8430262249976535 = max(5.694846093138307, 6.8430262249976535)
+     +      where 5.694846093138307 = abs(5.694846093138307)
+     +      and   6.8430262249976535 = abs(6.8430262249976535)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.1481801318593465 <= 0.13
+E   AssertionError: assert 1.493611997579734 <= 0.1347769052384319
+     +  where 1.493611997579734 = abs((13.477690523843188 - 11.984078526263454))
+     +  and   0.1347769052384319 = pair_tolerance('BT', 'MC', 13.477690523843188)
+     +    where 13.477690523843188 = max(13.477690523843188, 11.984078526263454)
+     +      where 13.477690523843188 = abs(13.477690523843188)
+     +      and   11.984078526263454 = abs(11.984078526263454)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.493611997579734 <= 0.1347769052384319
+E   AssertionError: assert 0.8400013651465477 <= 0.13
+     +  where 0.8400013651465477 = abs((7.396297212757941 - 8.236298577904488))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 8.236298577904488)
+     +    where 8.236298577904488 = max(7.396297212757941, 8.236298577904488)
+     +      where 7.396297212757941 = abs(7.396297212757941)
+     +      and   8.236298577904488 = abs(8.236298577904488)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8400013651465477 <= 0.13
+E   AssertionError: assert 0.6388154509385968 <= 0.13
+     +  where 0.6388154509385968 = abs((6.4160944552844335 - 5.777279004345837))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 6.4160944552844335)
+     +    where 6.4160944552844335 = max(6.4160944552844335, 5.777279004345837)
+     +      where 6.4160944552844335 = abs(6.4160944552844335)
+     +      and   5.777279004345837 = abs(5.777279004345837)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.6388154509385968 <= 0.13
+E   AssertionError: assert 1.7614209914470162 <= 0.13
+     +  where 1.7614209914470162 = abs((10.537308022564995 - 12.298729014012011))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 12.298729014012011)
+     +    where 12.298729014012011 = max(10.537308022564995, 12.298729014012011)
+     +      where 10.537308022564995 = abs(10.537308022564995)
+     +      and   12.298729014012011 = abs(12.298729014012011)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.7614209914470162 <= 0.13
+E   AssertionError: assert 1.1739035968186657 <= 0.13
+     +  where 1.1739035968186657 = abs((8.615697117784745 - 7.441793520966079))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 8.615697117784745)
+     +    where 8.615697117784745 = max(8.615697117784745, 7.441793520966079)
+     +      where 8.615697117784745 = abs(8.615697117784745)
+     +      and   7.441793520966079 = abs(7.441793520966079)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.1739035968186657 <= 0.13
+E   AssertionError: assert 1.2310907123682124 <= 0.15143857279394302
+     +  where 1.2310907123682124 = abs((13.91276656702609 - 15.143857279394302))
+     +  and   0.15143857279394302 = pair_tolerance('BT', 'MC', 15.143857279394302)
+     +    where 15.143857279394302 = max(13.91276656702609, 15.143857279394302)
+     +      where 13.91276656702609 = abs(13.91276656702609)
+     +      and   15.143857279394302 = abs(15.143857279394302)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.2310907123682124 <= 0.15143857279394302
+E   AssertionError: assert 0.3956077853252671 <= 0.13
+     +  where 0.3956077853252671 = abs((3.08144441352171 - 2.685836628196443))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 3.08144441352171)
+     +    where 3.08144441352171 = max(3.08144441352171, 2.685836628196443)
+     +      where 3.08144441352171 = abs(3.08144441352171)
+     +      and   2.685836628196443 = abs(2.685836628196443)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.3956077853252671 <= 0.13
+E   AssertionError: assert 2.366818350826673 <= 0.1927070940422139
+     +  where 2.366818350826673 = abs((16.903891053394716 - 19.27070940422139))
+     +  and   0.1927070940422139 = pair_tolerance('BT', 'MC', 19.27070940422139)
+     +    where 19.27070940422139 = max(16.903891053394716, 19.27070940422139)
+     +      where 16.903891053394716 = abs(16.903891053394716)
+     +      and   19.27070940422139 = abs(19.27070940422139)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 2.366818350826673 <= 0.1927070940422139
+E   AssertionError: assert 0.8620386962656132 <= 0.13
+     +  where 0.8620386962656132 = abs((5.277824813129319 - 4.415786116863706))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 5.277824813129319)
+     +    where 5.277824813129319 = max(5.277824813129319, 4.415786116863706)
+     +      where 5.277824813129319 = abs(5.277824813129319)
+     +      and   4.415786116863706 = abs(4.415786116863706)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8620386962656132 <= 0.13
+E   AssertionError: assert 1.5612873984730449 <= 0.23575771850812766
+     +  where 1.5612873984730449 = abs((22.01448445233972 - 23.575771850812764))
+     +  and   0.23575771850812766 = pair_tolerance('BT', 'MC', 23.575771850812764)
+     +    where 23.575771850812764 = max(22.01448445233972, 23.575771850812764)
+     +      where 22.01448445233972 = abs(22.01448445233972)
+     +      and   23.575771850812764 = abs(23.575771850812764)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.5612873984730449 <= 0.23575771850812766
+E   AssertionError: assert 0.21329278082874104 <= 0.13
+     +  where 0.21329278082874104 = abs((1.3320429028044678 - 1.1187501219757268))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 1.3320429028044678)
+     +    where 1.3320429028044678 = max(1.3320429028044678, 1.1187501219757268)
+     +      where 1.3320429028044678 = abs(1.3320429028044678)
+     +      and   1.1187501219757268 = abs(1.1187501219757268)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.21329278082874104 <= 0.13
+E   AssertionError: assert 2.940093347988796 <= 0.2736662812620491
+     +  where 2.940093347988796 = abs((24.426534778216112 - 27.36662812620491))
+     +  and   0.2736662812620491 = pair_tolerance('BT', 'MC', 27.36662812620491)
+     +    where 27.36662812620491 = max(24.426534778216112, 27.36662812620491)
+     +      where 24.426534778216112 = abs(24.426534778216112)
+     +      and   27.36662812620491 = abs(27.36662812620491)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 2.940093347988796 <= 0.2736662812620491
+E   AssertionError: assert 0.5822961579300947 <= 0.13
+     +  where 0.5822961579300947 = abs((3.0960132024656026 - 2.513717044535508))
+     +  and   0.13 = pair_tolerance('BT', 'MC', 3.0960132024656026)
+     +    where 3.0960132024656026 = max(3.0960132024656026, 2.513717044535508)
+     +      where 3.0960132024656026 = abs(3.0960132024656026)
+     +      and   2.513717044535508 = abs(2.513717044535508)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.5822961579300947 <= 0.13
+E   AssertionError: assert 0.1527671261063972 <= 0.13
+     +  where 0.1527671261063972 = abs((0.8580123496756744 - 1.0107794757820716))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 1.0107794757820716)
+     +    where 1.0107794757820716 = max(0.8580123496756744, 1.0107794757820716)
+     +      where 0.8580123496756744 = abs(0.8580123496756744)
+     +      and   1.0107794757820716 = abs(1.0107794757820716)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.1527671261063972 <= 0.13
+E   AssertionError: assert 1.0302863269072553 <= 0.19580048384409057
+     +  where 1.0302863269072553 = abs((19.580048384409057 - 18.549762057501802))
+     +  and   0.19580048384409057 = pair_tolerance('TT', 'MC', 19.580048384409057)
+     +    where 19.580048384409057 = max(19.580048384409057, 18.549762057501802)
+     +      where 19.580048384409057 = abs(19.580048384409057)
+     +      and   18.549762057501802 = abs(18.549762057501802)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.0302863269072553 <= 0.19580048384409057
+E   AssertionError: assert 0.5991332027907306 <= 0.13
+     +  where 0.5991332027907306 = abs((2.5157370609338483 - 3.114870263724579))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 3.114870263724579)
+     +    where 3.114870263724579 = max(2.5157370609338483, 3.114870263724579)
+     +      where 2.5157370609338483 = abs(2.5157370609338483)
+     +      and   3.114870263724579 = abs(3.114870263724579)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.5991332027907306 <= 0.13
+E   AssertionError: assert 1.7491264689653576 <= 0.20003036828267473
+     +  where 1.7491264689653576 = abs((20.003036828267472 - 18.253910359302115))
+     +  and   0.20003036828267473 = pair_tolerance('TT', 'MC', 20.003036828267472)
+     +    where 20.003036828267472 = max(20.003036828267472, 18.253910359302115)
+     +      where 20.003036828267472 = abs(20.003036828267472)
+     +      and   18.253910359302115 = abs(18.253910359302115)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.7491264689653576 <= 0.20003036828267473
+E   AssertionError: assert 0.4413408208798457 <= 0.13
+     +  where 0.4413408208798457 = abs((3.0476016180874943 - 3.48894243896734))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 3.48894243896734)
+     +    where 3.48894243896734 = max(3.0476016180874943, 3.48894243896734)
+     +      where 3.0476016180874943 = abs(3.0476016180874943)
+     +      and   3.48894243896734 = abs(3.48894243896734)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.4413408208798457 <= 0.13
+E   AssertionError: assert 0.8895943137604139 <= 0.13
+     +  where 0.8895943137604139 = abs((11.918518256808294 - 11.02892394304788))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 11.918518256808294)
+     +    where 11.918518256808294 = max(11.918518256808294, 11.02892394304788)
+     +      where 11.918518256808294 = abs(11.918518256808294)
+     +      and   11.02892394304788 = abs(11.02892394304788)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8895943137604139 <= 0.13
+E   AssertionError: assert 1.1331690853898424 <= 0.13
+     +  where 1.1331690853898424 = abs((5.709857139607811 - 6.8430262249976535))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 6.8430262249976535)
+     +    where 6.8430262249976535 = max(5.709857139607811, 6.8430262249976535)
+     +      where 5.709857139607811 = abs(5.709857139607811)
+     +      and   6.8430262249976535 = abs(6.8430262249976535)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.1331690853898424 <= 0.13
+E   AssertionError: assert 1.5086230453355274 <= 0.13492701571598983
+     +  where 1.5086230453355274 = abs((13.492701571598982 - 11.984078526263454))
+     +  and   0.13492701571598983 = pair_tolerance('TT', 'MC', 13.492701571598982)
+     +    where 13.492701571598982 = max(13.492701571598982, 11.984078526263454)
+     +      where 13.492701571598982 = abs(13.492701571598982)
+     +      and   11.984078526263454 = abs(11.984078526263454)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.5086230453355274 <= 0.13492701571598983
+E   AssertionError: assert 0.8399676706551116 <= 0.13
+     +  where 0.8399676706551116 = abs((7.396330907249377 - 8.236298577904488))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 8.236298577904488)
+     +    where 8.236298577904488 = max(7.396330907249377, 8.236298577904488)
+     +      where 7.396330907249377 = abs(7.396330907249377)
+     +      and   8.236298577904488 = abs(8.236298577904488)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8399676706551116 <= 0.13
+E   AssertionError: assert 0.6388491456117533 <= 0.13
+     +  where 0.6388491456117533 = abs((6.41612814995759 - 5.777279004345837))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 6.41612814995759)
+     +    where 6.41612814995759 = max(6.41612814995759, 5.777279004345837)
+     +      where 6.41612814995759 = abs(6.41612814995759)
+     +      and   5.777279004345837 = abs(5.777279004345837)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.6388491456117533 <= 0.13
+E   AssertionError: assert 1.7613057379238448 <= 0.13
+     +  where 1.7613057379238448 = abs((10.537423276088166 - 12.298729014012011))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 12.298729014012011)
+     +    where 12.298729014012011 = max(10.537423276088166, 12.298729014012011)
+     +      where 10.537423276088166 = abs(10.537423276088166)
+     +      and   12.298729014012011 = abs(12.298729014012011)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.7613057379238448 <= 0.13
+E   AssertionError: assert 1.1740188517708292 <= 0.13
+     +  where 1.1740188517708292 = abs((8.615812372736908 - 7.441793520966079))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 8.615812372736908)
+     +    where 8.615812372736908 = max(8.615812372736908, 7.441793520966079)
+     +      where 8.615812372736908 = abs(8.615812372736908)
+     +      and   7.441793520966079 = abs(7.441793520966079)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.1740188517708292 <= 0.13
+E   AssertionError: assert 1.2289934632810269 <= 0.15143857279394302
+     +  where 1.2289934632810269 = abs((13.914863816113275 - 15.143857279394302))
+     +  and   0.15143857279394302 = pair_tolerance('TT', 'MC', 15.143857279394302)
+     +    where 15.143857279394302 = max(13.914863816113275, 15.143857279394302)
+     +      where 13.914863816113275 = abs(13.914863816113275)
+     +      and   15.143857279394302 = abs(15.143857279394302)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.2289934632810269 <= 0.15143857279394302
+E   AssertionError: assert 0.39770503461244244 <= 0.13
+     +  where 0.39770503461244244 = abs((3.0835416628088854 - 2.685836628196443))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 3.0835416628088854)
+     +    where 3.0835416628088854 = max(3.0835416628088854, 2.685836628196443)
+     +      where 3.0835416628088854 = abs(3.0835416628088854)
+     +      and   2.685836628196443 = abs(2.685836628196443)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.39770503461244244 <= 0.13
+E   AssertionError: assert 2.378893548676949 <= 0.1927070940422139
+     +  where 2.378893548676949 = abs((16.89181585554444 - 19.27070940422139))
+     +  and   0.1927070940422139 = pair_tolerance('TT', 'MC', 19.27070940422139)
+     +    where 19.27070940422139 = max(16.89181585554444, 19.27070940422139)
+     +      where 16.89181585554444 = abs(16.89181585554444)
+     +      and   19.27070940422139 = abs(19.27070940422139)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 2.378893548676949 <= 0.1927070940422139
+E   AssertionError: assert 0.8499634999870169 <= 0.13
+     +  where 0.8499634999870169 = abs((5.265749616850723 - 4.415786116863706))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 5.265749616850723)
+     +    where 5.265749616850723 = max(5.265749616850723, 4.415786116863706)
+     +      where 5.265749616850723 = abs(5.265749616850723)
+     +      and   4.415786116863706 = abs(4.415786116863706)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8499634999870169 <= 0.13
+E   AssertionError: assert 1.5604942371052495 <= 0.23575771850812766
+     +  where 1.5604942371052495 = abs((22.015277613707514 - 23.575771850812764))
+     +  and   0.23575771850812766 = pair_tolerance('TT', 'MC', 23.575771850812764)
+     +    where 23.575771850812764 = max(22.015277613707514, 23.575771850812764)
+     +      where 22.015277613707514 = abs(22.015277613707514)
+     +      and   23.575771850812764 = abs(23.575771850812764)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.5604942371052495 <= 0.23575771850812766
+E   AssertionError: assert 0.21408594241482093 <= 0.13
+     +  where 0.21408594241482093 = abs((1.3328360643905477 - 1.1187501219757268))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 1.3328360643905477)
+     +    where 1.3328360643905477 = max(1.3328360643905477, 1.1187501219757268)
+     +      where 1.3328360643905477 = abs(1.3328360643905477)
+     +      and   1.1187501219757268 = abs(1.1187501219757268)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.21408594241482093 <= 0.13
+E   AssertionError: assert 2.9458442767169686 <= 0.2736662812620491
+     +  where 2.9458442767169686 = abs((24.42078384948794 - 27.36662812620491))
+     +  and   0.2736662812620491 = pair_tolerance('TT', 'MC', 27.36662812620491)
+     +    where 27.36662812620491 = max(24.42078384948794, 27.36662812620491)
+     +      where 24.42078384948794 = abs(24.42078384948794)
+     +      and   27.36662812620491 = abs(27.36662812620491)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 2.9458442767169686 <= 0.2736662812620491
+E   AssertionError: assert 0.5765452309162824 <= 0.13
+     +  where 0.5765452309162824 = abs((3.0902622754517903 - 2.513717044535508))
+     +  and   0.13 = pair_tolerance('TT', 'MC', 3.0902622754517903)
+     +    where 3.0902622754517903 = max(3.0902622754517903, 2.513717044535508)
+     +      where 3.0902622754517903 = abs(3.0902622754517903)
+     +      and   2.513717044535508 = abs(2.513717044535508)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.5765452309162824 <= 0.13
+E   AssertionError: assert 0.16180906707342413 <= 0.16
+     +  where 0.16180906707342413 = abs((1.0107794757820716 - 0.8489704087086475))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 1.0107794757820716)
+     +    where 1.0107794757820716 = max(1.0107794757820716, 0.8489704087086475)
+     +      where 1.0107794757820716 = abs(1.0107794757820716)
+     +      and   0.8489704087086475 = abs(0.8489704087086475)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.16180906707342413 <= 0.16
+E   AssertionError: assert 1.0275256257866658 <= 0.27408202756603856
+     +  where 1.0275256257866658 = abs((18.549762057501802 - 19.577287683288468))
+     +  and   0.27408202756603856 = pair_tolerance('MC', 'FD', 19.577287683288468)
+     +    where 19.577287683288468 = max(18.549762057501802, 19.577287683288468)
+     +      where 18.549762057501802 = abs(18.549762057501802)
+     +      and   19.577287683288468 = abs(19.577287683288468)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.0275256257866658 <= 0.27408202756603856
+E   AssertionError: assert 0.6134058708208201 <= 0.16
+     +  where 0.6134058708208201 = abs((3.114870263724579 - 2.5014643929037588))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 3.114870263724579)
+     +    where 3.114870263724579 = max(3.114870263724579, 2.5014643929037588)
+     +      where 3.114870263724579 = abs(3.114870263724579)
+     +      and   2.5014643929037588 = abs(2.5014643929037588)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.6134058708208201 <= 0.16
+E   AssertionError: assert 1.7444863515786828 <= 0.27997755395233115
+     +  where 1.7444863515786828 = abs((18.253910359302115 - 19.998396710880797))
+     +  and   0.27997755395233115 = pair_tolerance('MC', 'FD', 19.998396710880797)
+     +    where 19.998396710880797 = max(18.253910359302115, 19.998396710880797)
+     +      where 18.253910359302115 = abs(18.253910359302115)
+     +      and   19.998396710880797 = abs(19.998396710880797)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.7444863515786828 <= 0.27997755395233115
+E   AssertionError: assert 0.45529835972593125 <= 0.16
+     +  where 0.45529835972593125 = abs((3.48894243896734 - 3.0336440792414088))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 3.48894243896734)
+     +    where 3.48894243896734 = max(3.48894243896734, 3.0336440792414088)
+     +      where 3.48894243896734 = abs(3.48894243896734)
+     +      and   3.0336440792414088 = abs(3.0336440792414088)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.45529835972593125 <= 0.16
+E   AssertionError: assert 0.8811791531175412 <= 0.1667414433463159
+     +  where 0.8811791531175412 = abs((11.02892394304788 - 11.910103096165422))
+     +  and   0.1667414433463159 = pair_tolerance('MC', 'FD', 11.910103096165422)
+     +    where 11.910103096165422 = max(11.02892394304788, 11.910103096165422)
+     +      where 11.02892394304788 = abs(11.02892394304788)
+     +      and   11.910103096165422 = abs(11.910103096165422)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8811791531175412 <= 0.1667414433463159
+E   AssertionError: assert 1.156318321417901 <= 0.16
+     +  where 1.156318321417901 = abs((6.8430262249976535 - 5.6867079035797525))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 6.8430262249976535)
+     +    where 6.8430262249976535 = max(6.8430262249976535, 5.6867079035797525)
+     +      where 6.8430262249976535 = abs(6.8430262249976535)
+     +      and   5.6867079035797525 = abs(5.6867079035797525)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.156318321417901 <= 0.16
+E   AssertionError: assert 1.4939507729177581 <= 0.18869241018853697
+     +  where 1.4939507729177581 = abs((11.984078526263454 - 13.478029299181213))
+     +  and   0.18869241018853697 = pair_tolerance('MC', 'FD', 13.478029299181213)
+     +    where 13.478029299181213 = max(11.984078526263454, 13.478029299181213)
+     +      where 11.984078526263454 = abs(11.984078526263454)
+     +      and   13.478029299181213 = abs(13.478029299181213)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.4939507729177581 <= 0.18869241018853697
+E   AssertionError: assert 0.8514615604568787 <= 0.16
+     +  where 0.8514615604568787 = abs((8.236298577904488 - 7.38483701744761))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 8.236298577904488)
+     +    where 8.236298577904488 = max(8.236298577904488, 7.38483701744761)
+     +      where 8.236298577904488 = abs(8.236298577904488)
+     +      and   7.38483701744761 = abs(7.38483701744761)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8514615604568787 <= 0.16
+E   AssertionError: assert 0.6321587711643017 <= 0.16
+     +  where 0.6321587711643017 = abs((5.777279004345837 - 6.409437775510138))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 6.409437775510138)
+     +    where 6.409437775510138 = max(5.777279004345837, 6.409437775510138)
+     +      where 5.777279004345837 = abs(5.777279004345837)
+     +      and   6.409437775510138 = abs(6.409437775510138)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.6321587711643017 <= 0.16
+E   AssertionError: assert 1.770614937568638 <= 0.17218220619616817
+     +  where 1.770614937568638 = abs((12.298729014012011 - 10.528114076443373))
+     +  and   0.17218220619616817 = pair_tolerance('MC', 'FD', 12.298729014012011)
+     +    where 12.298729014012011 = max(12.298729014012011, 10.528114076443373)
+     +      where 12.298729014012011 = abs(12.298729014012011)
+     +      and   10.528114076443373 = abs(10.528114076443373)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.770614937568638 <= 0.17218220619616817
+E   AssertionError: assert 1.1720294551456112 <= 0.16
+     +  where 1.1720294551456112 = abs((7.441793520966079 - 8.61382297611169))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 8.61382297611169)
+     +    where 8.61382297611169 = max(7.441793520966079, 8.61382297611169)
+     +      where 7.441793520966079 = abs(7.441793520966079)
+     +      and   8.61382297611169 = abs(8.61382297611169)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.1720294551456112 <= 0.16
+E   AssertionError: assert 1.2495866162912375 <= 0.21201400191152023
+     +  where 1.2495866162912375 = abs((15.143857279394302 - 13.894270663103065))
+     +  and   0.21201400191152023 = pair_tolerance('MC', 'FD', 15.143857279394302)
+     +    where 15.143857279394302 = max(15.143857279394302, 13.894270663103065)
+     +      where 15.143857279394302 = abs(15.143857279394302)
+     +      and   13.894270663103065 = abs(13.894270663103065)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.2495866162912375 <= 0.21201400191152023
+E   AssertionError: assert 0.381176535218509 <= 0.16
+     +  where 0.381176535218509 = abs((2.685836628196443 - 3.067013163414952))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 3.067013163414952)
+     +    where 3.067013163414952 = max(2.685836628196443, 3.067013163414952)
+     +      where 2.685836628196443 = abs(2.685836628196443)
+     +      and   3.067013163414952 = abs(3.067013163414952)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.381176535218509 <= 0.16
+E   AssertionError: assert 2.394625519939243 <= 0.2697899316590994
+     +  where 2.394625519939243 = abs((19.27070940422139 - 16.876083884282146))
+     +  and   0.2697899316590994 = pair_tolerance('MC', 'FD', 19.27070940422139)
+     +    where 19.27070940422139 = max(19.27070940422139, 16.876083884282146)
+     +      where 19.27070940422139 = abs(19.27070940422139)
+     +      and   16.876083884282146 = abs(16.876083884282146)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 2.394625519939243 <= 0.2697899316590994
+E   AssertionError: assert 0.8403957663808432 <= 0.16
+     +  where 0.8403957663808432 = abs((4.415786116863706 - 5.256181883244549))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 5.256181883244549)
+     +    where 5.256181883244549 = max(4.415786116863706, 5.256181883244549)
+     +      where 4.415786116863706 = abs(4.415786116863706)
+     +      and   5.256181883244549 = abs(5.256181883244549)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.8403957663808432 <= 0.16
+E   AssertionError: assert 1.5754495884264479 <= 0.3300608059113787
+     +  where 1.5754495884264479 = abs((23.575771850812764 - 22.000322262386316))
+     +  and   0.3300608059113787 = pair_tolerance('MC', 'FD', 23.575771850812764)
+     +    where 23.575771850812764 = max(23.575771850812764, 22.000322262386316)
+     +      where 23.575771850812764 = abs(23.575771850812764)
+     +      and   22.000322262386316 = abs(22.000322262386316)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 1.5754495884264479 <= 0.3300608059113787
+E   AssertionError: assert 0.2024563829721282 <= 0.16
+     +  where 0.2024563829721282 = abs((1.1187501219757268 - 1.321206504947855))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 1.321206504947855)
+     +    where 1.321206504947855 = max(1.1187501219757268, 1.321206504947855)
+     +      where 1.1187501219757268 = abs(1.1187501219757268)
+     +      and   1.321206504947855 = abs(1.321206504947855)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.2024563829721282 <= 0.16
+E   AssertionError: assert 2.956085394618409 <= 0.3831327937668687
+     +  where 2.956085394618409 = abs((27.36662812620491 - 24.4105427315865))
+     +  and   0.3831327937668687 = pair_tolerance('MC', 'FD', 27.36662812620491)
+     +    where 27.36662812620491 = max(27.36662812620491, 24.4105427315865)
+     +      where 27.36662812620491 = abs(27.36662812620491)
+     +      and   24.4105427315865 = abs(24.4105427315865)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 2.956085394618409 <= 0.3831327937668687
+E   AssertionError: assert 0.5713127853072137 <= 0.16
+     +  where 0.5713127853072137 = abs((2.513717044535508 - 3.0850298298427217))
+     +  and   0.16 = pair_tolerance('MC', 'FD', 3.0850298298427217)
+     +    where 3.0850298298427217 = max(2.513717044535508, 3.0850298298427217)
+     +      where 2.513717044535508 = abs(2.513717044535508)
+     +      and   3.0850298298427217 = abs(3.0850298298427217)
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_convergence.py:114: AssertionError: assert 0.5713127853072137 <= 0.16
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   numpy.linalg.LinAlgError: Singular matrix
+/Users/jay/Desktop/derivative-pricing.github.io/.venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:144: numpy.linalg.LinAlgError: Singular matrix
+E   AssertionError: vega at moneyness 0.8, T=0.5, call: finite difference 12.43460 vs closed form 9.87846 (ratio 1.2588, allowed 0.19757)
+    assert np.float64(2.556141526931942) <= np.float64(0.19756920970216973)
+     +  where np.float64(2.556141526931942) = abs((12.434602012040429 - np.float64(9.878460485108487)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.8, T=0.5, call: finite difference 12.43460 vs closed form 9.87846 (ratio 1.2588, allowed 0.19757)
+E   AssertionError: theta at moneyness 0.8, T=0.5, put: finite difference -0.12639 vs closed form -0.07709 (ratio 1.6395, allowed 0.02000)
+    assert np.float64(0.04929940445660019) <= 0.02
+     +  where np.float64(0.04929940445660019) = abs((-0.1263900465605161 - np.float64(-0.07709064210391592)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: theta at moneyness 0.8, T=0.5, put: finite difference -0.12639 vs closed form -0.07709 (ratio 1.6395, allowed 0.02000)
+E   AssertionError: vega at moneyness 0.8, T=0.5, put: finite difference 12.43460 vs closed form 9.87846 (ratio 1.2588, allowed 0.19757)
+    assert np.float64(2.5561415268603334) <= np.float64(0.19756920970216973)
+     +  where np.float64(2.5561415268603334) = abs((12.43460201196882 - np.float64(9.878460485108487)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.8, T=0.5, put: finite difference 12.43460 vs closed form 9.87846 (ratio 1.2588, allowed 0.19757)
+E   AssertionError: vega at moneyness 0.8, T=1.0, call: finite difference 25.48136 vs closed form 20.29285 (ratio 1.2557, allowed 0.40586)
+    assert np.float64(5.1885155227254) <= np.float64(0.4058569055335071)
+     +  where np.float64(5.1885155227254) = abs((25.481360799400754 - np.float64(20.292845276675354)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.8, T=1.0, call: finite difference 25.48136 vs closed form 20.29285 (ratio 1.2557, allowed 0.40586)
+E   AssertionError: vega at moneyness 0.8, T=1.0, put: finite difference 25.48136 vs closed form 20.29285 (ratio 1.2557, allowed 0.40586)
+    assert np.float64(5.1885151501389934) <= np.float64(0.4058569055335071)
+     +  where np.float64(5.1885151501389934) = abs((25.481360426814348 - np.float64(20.292845276675354)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.8, T=1.0, put: finite difference 25.48136 vs closed form 20.29285 (ratio 1.2557, allowed 0.40586)
+E   AssertionError: vega at moneyness 0.9, T=0.5, call: finite difference 22.97080 vs closed form 20.68835 (ratio 1.1103, allowed 0.41377)
+    assert np.float64(2.282450213686481) <= np.float64(0.41376697288627656)
+     +  where np.float64(2.282450213686481) = abs((22.970798858000308 - np.float64(20.688348644313827)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.9, T=0.5, call: finite difference 22.97080 vs closed form 20.68835 (ratio 1.1103, allowed 0.41377)
+E   AssertionError: vega at moneyness 0.9, T=0.5, put: finite difference 22.97080 vs closed form 20.68835 (ratio 1.1103, allowed 0.41377)
+    assert np.float64(2.282450208314067) <= np.float64(0.41376697288627656)
+     +  where np.float64(2.282450208314067) = abs((22.970798852627894 - np.float64(20.688348644313827)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.9, T=0.5, put: finite difference 22.97080 vs closed form 20.68835 (ratio 1.1103, allowed 0.41377)
+E   AssertionError: vega at moneyness 0.9, T=1.0, call: finite difference 34.56171 vs closed form 31.18523 (ratio 1.1083, allowed 0.62370)
+    assert np.float64(3.3764751617950957) <= np.float64(0.6237046844766615)
+     +  where np.float64(3.3764751617950957) = abs((34.56170938562817 - np.float64(31.185234223833074)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.9, T=1.0, call: finite difference 34.56171 vs closed form 31.18523 (ratio 1.1083, allowed 0.62370)
+E   AssertionError: rho at moneyness 0.9, T=1.0, put: finite difference -62.55559 vs closed form -63.26695 (ratio 0.9888, allowed 0.63267)
+    assert np.float64(0.711360599668005) <= np.float64(0.6326694644302056)
+     +  where np.float64(0.711360599668005) = abs((-62.555585843352546 - np.float64(-63.26694644302055)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 0.9, T=1.0, put: finite difference -62.55559 vs closed form -63.26695 (ratio 0.9888, allowed 0.63267)
+E   AssertionError: vega at moneyness 0.9, T=1.0, put: finite difference 34.56171 vs closed form 31.18523 (ratio 1.1083, allowed 0.62370)
+    assert np.float64(3.3764727894856357) <= np.float64(0.6237046844766615)
+     +  where np.float64(3.3764727894856357) = abs((34.56170701331871 - np.float64(31.185234223833074)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 0.9, T=1.0, put: finite difference 34.56171 vs closed form 31.18523 (ratio 1.1083, allowed 0.62370)
+E   AssertionError: rho at moneyness 1.0, T=0.5, put: finite difference -24.16560 vs closed form -24.45153 (ratio 0.9883, allowed 0.24452)
+    assert np.float64(0.2859338116113932) <= np.float64(0.24451530119048948)
+     +  where np.float64(0.2859338116113932) = abs((-24.165596307437553 - np.float64(-24.451530119048947)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 1.0, T=0.5, put: finite difference -24.16560 vs closed form -24.45153 (ratio 0.9883, allowed 0.24452)
+E   AssertionError: rho at moneyness 1.0, T=1.0, put: finite difference -47.07743 vs closed form -47.75121 (ratio 0.9859, allowed 0.47751)
+    assert np.float64(0.6737838792336674) <= np.float64(0.4775121325234122)
+     +  where np.float64(0.6737838792336674) = abs((-47.07742937310755 - np.float64(-47.751213252341216)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 1.0, T=1.0, put: finite difference -47.07743 vs closed form -47.75121 (ratio 0.9859, allowed 0.47751)
+E   AssertionError: vega at moneyness 1.1, T=0.5, call: finite difference 23.85098 vs closed form 26.22003 (ratio 0.9096, allowed 0.52440)
+    assert np.float64(2.369056232617641) <= np.float64(0.5244006458404147)
+     +  where np.float64(2.369056232617641) = abs((23.850976059403095 - np.float64(26.220032292020736)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.1, T=0.5, call: finite difference 23.85098 vs closed form 26.22003 (ratio 0.9096, allowed 0.52440)
+E   AssertionError: rho at moneyness 1.1, T=0.5, put: finite difference -14.21306 vs closed form -14.43998 (ratio 0.9843, allowed 0.14440)
+    assert np.float64(0.2269148748430183) <= np.float64(0.1443997583399282)
+     +  where np.float64(0.2269148748430183) = abs((-14.213060959149804 - np.float64(-14.439975833992822)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 1.1, T=0.5, put: finite difference -14.21306 vs closed form -14.43998 (ratio 0.9843, allowed 0.14440)
+E   AssertionError: vega at moneyness 1.1, T=0.5, put: finite difference 23.85098 vs closed form 26.22003 (ratio 0.9096, allowed 0.52440)
+    assert np.float64(2.3690564071481646) <= np.float64(0.5244006458404147)
+     +  where np.float64(2.3690564071481646) = abs((23.85097588487257 - np.float64(26.220032292020736)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.1, T=0.5, put: finite difference 23.85098 vs closed form 26.22003 (ratio 0.9096, allowed 0.52440)
+E   AssertionError: vega at moneyness 1.1, T=1.0, call: finite difference 35.34761 vs closed form 38.89102 (ratio 0.9089, allowed 0.77782)
+    assert np.float64(3.5434064228939945) <= np.float64(0.7778203358635719)
+     +  where np.float64(3.5434064228939945) = abs((35.3476103702846 - np.float64(38.89101679317859)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.1, T=1.0, call: finite difference 35.34761 vs closed form 38.89102 (ratio 0.9089, allowed 0.77782)
+E   AssertionError: rho at moneyness 1.1, T=1.0, put: finite difference -33.02957 vs closed form -33.61350 (ratio 0.9826, allowed 0.33613)
+    assert np.float64(0.5839307446945483) <= np.float64(0.33613496482145544)
+     +  where np.float64(0.5839307446945483) = abs((-33.029565737450994 - np.float64(-33.61349648214554)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 1.1, T=1.0, put: finite difference -33.02957 vs closed form -33.61350 (ratio 0.9826, allowed 0.33613)
+E   AssertionError: vega at moneyness 1.1, T=1.0, put: finite difference 35.34760 vs closed form 38.89102 (ratio 0.9089, allowed 0.77782)
+    assert np.float64(3.543413338639837) <= np.float64(0.7778203358635719)
+     +  where np.float64(3.543413338639837) = abs((35.347603454538756 - np.float64(38.89101679317859)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.1, T=1.0, put: finite difference 35.34760 vs closed form 38.89102 (ratio 0.9089, allowed 0.77782)
+E   AssertionError: vega at moneyness 1.2, T=0.5, call: finite difference 16.33826 vs closed form 19.46779 (ratio 0.8392, allowed 0.38936)
+    assert np.float64(3.1295360773935705) <= np.float64(0.38935583671793333)
+     +  where np.float64(3.1295360773935705) = abs((16.338255758503095 - np.float64(19.467791835896666)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.2, T=0.5, call: finite difference 16.33826 vs closed form 19.46779 (ratio 0.8392, allowed 0.38936)
+E   AssertionError: rho at moneyness 1.2, T=0.5, put: finite difference -7.26115 vs closed form -7.41307 (ratio 0.9795, allowed 0.07413)
+    assert np.float64(0.15192195568297517) <= np.float64(0.07413071203687337)
+     +  where np.float64(0.15192195568297517) = abs((-7.261149248004362 - np.float64(-7.413071203687337)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 1.2, T=0.5, put: finite difference -7.26115 vs closed form -7.41307 (ratio 0.9795, allowed 0.07413)
+E   AssertionError: vega at moneyness 1.2, T=0.5, put: finite difference 16.33826 vs closed form 19.46779 (ratio 0.8392, allowed 0.38936)
+    assert np.float64(3.129536267764003) <= np.float64(0.38935583671793333)
+     +  where np.float64(3.129536267764003) = abs((16.338255568132663 - np.float64(19.467791835896666)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.2, T=0.5, put: finite difference 16.33826 vs closed form 19.46779 (ratio 0.8392, allowed 0.38936)
+E   AssertionError: vega at moneyness 1.2, T=1.0, call: finite difference 29.28571 vs closed form 35.03186 (ratio 0.8360, allowed 0.70064)
+    assert np.float64(5.746146692846587) <= np.float64(0.7006372049003748)
+     +  where np.float64(5.746146692846587) = abs((29.285713552172155 - np.float64(35.03186024501874)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.2, T=1.0, call: finite difference 29.28571 vs closed form 35.03186 (ratio 0.8360, allowed 0.70064)
+E   AssertionError: rho at moneyness 1.2, T=1.0, put: finite difference -21.83628 vs closed form -22.30110 (ratio 0.9792, allowed 0.22301)
+    assert np.float64(0.4648194379530892) <= np.float64(0.22301099703202376)
+     +  where np.float64(0.4648194379530892) = abs((-21.836280265249286 - np.float64(-22.301099703202375)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: rho at moneyness 1.2, T=1.0, put: finite difference -21.83628 vs closed form -22.30110 (ratio 0.9792, allowed 0.22301)
+E   AssertionError: vega at moneyness 1.2, T=1.0, put: finite difference 29.28571 vs closed form 35.03186 (ratio 0.8360, allowed 0.70064)
+    assert np.float64(5.746154237252931) <= np.float64(0.7006372049003748)
+     +  where np.float64(5.746154237252931) = abs((29.28570600776581 - np.float64(35.03186024501874)))
+/Users/jay/Desktop/derivative-pricing.github.io/tests/test_greeks.py:70: AssertionError: vega at moneyness 1.2, T=1.0, put: finite difference 29.28571 vs closed form 35.03186 (ratio 0.8360, allowed 0.70064)
+=========================== short test summary info ============================
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[BT-LSMC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[TT-LSMC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_without_dividends[LSMC-FD-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.8-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.8-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.9-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-0.9-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.0-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.0-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.0-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.0-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.1-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.1-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.2-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.2-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BSM-MC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.8-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.8-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.9-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-0.9-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.0-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.0-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.0-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.0-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.1-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.1-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.2-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.2-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[BT-MC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.8-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.8-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.9-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-0.9-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.0-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.0-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.0-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.0-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.1-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.1-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.2-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.2-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[TT-MC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.8-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.8-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.9-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-0.9-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.0-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.0-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.0-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.0-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.1-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.1-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.2-0.5-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.2-1.0-call]
+FAILED tests/test_convergence.py::test_european_methods_agree_with_dividends[MC-FD-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[BT-LSMC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[TT-LSMC-1.2-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-0.8-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-0.8-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-0.9-0.5-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-0.9-1.0-call]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-1.1-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-1.1-1.0-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-1.2-0.5-put]
+FAILED tests/test_convergence.py::test_american_methods_agree_with_dividends[LSMC-FD-1.2-1.0-put]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.8-0.5-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.8-0.5-put-theta]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.8-0.5-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.8-1.0-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.8-1.0-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.9-0.5-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.9-0.5-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.9-1.0-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.9-1.0-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[0.9-1.0-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.0-0.5-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.0-1.0-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.1-0.5-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.1-0.5-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.1-0.5-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.1-1.0-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.1-1.0-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.1-1.0-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.2-0.5-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.2-0.5-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.2-0.5-put-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.2-1.0-call-vega]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.2-1.0-put-rho]
+FAILED tests/test_greeks.py::test_finite_difference_greek_matches_closed_form[1.2-1.0-put-vega]
+152 failed, 1145 passed in 219.91s (0:03:39)
