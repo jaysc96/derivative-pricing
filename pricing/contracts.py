@@ -28,6 +28,20 @@ DEFAULT_FD_NODES = 400
 #: bounds accuracy rather than convergence.
 DEFAULT_FD_DT = 1.0 / 252.0
 
+#: Floor on the number of time steps, whatever ``DEFAULT_FD_DT`` works out to.
+#:
+#: A step per trading day sounds contract-derived but is not: it gives a
+#: three-year option 756 steps and a one-month option 21, when the short-dated
+#: contract is the one that needs more. Crank-Nicolson loses its second-order
+#: accuracy against the kink in the payoff, so the error decays like ``1/M``
+#: rather than ``1/M^2``, and near expiry the kink dominates the whole
+#: solution. Measured on a one-month contract, 21 steps misprices by 2.8% at
+#: every volatility from 0.1 to 1.2 — and refining the *space* grid instead
+#: makes it worse (2.84% -> 3.55% from 400 to 1600 nodes), which is the
+#: signature of the oscillation rather than of a coarse grid. 200 steps brings
+#: that to roughly 0.3% and costs about a fifth of a second.
+MIN_FD_STEPS = 200
+
 
 @dataclass(frozen=True)
 class PriceResult:
@@ -46,23 +60,43 @@ class PriceResult:
     rho: float
 
 
+#: Grid extent, as a multiple of ``max(S0, K)``. The lower bound keeps the
+#: boundary clear of the contract when volatility or maturity is near zero. The
+#: upper bound is the awkward one — see ``fd_grid``.
+MIN_SPAN, MAX_SPAN = 2.5, 12.0
+
+
 def fd_grid(S0, K, sig, T, nodes=DEFAULT_FD_NODES):
     """Spatial grid for a contract, descending from ``S_max`` to ``dS``.
 
-    The extent has to hold the terminal distribution: five log-normal standard
-    deviations above the larger of spot and strike, floored at three times it so
-    that a near-zero volatility or a near-dated expiry still leaves the
-    boundary far enough away for the Neumann conditions to hold.
+    The extent has to hold the terminal distribution, which argues for scaling
+    it as ``exp(k * sig * sqrt(T))``. But this grid is uniform in ``S`` while
+    that width is log-normal, so the two pull against each other: a wide enough
+    boundary for high volatility and long maturity spreads the same node budget
+    so thinly that spot lands between distant nodes. At ``sig=0.8, T=3`` an
+    uncapped ``exp(5 * sig * sqrt(T))`` puts the boundary at 1400x strike with a
+    node every 357 currency units, which prices a 140 call about 1140 too high.
 
-    The scheme's coefficients use ``j = S / dS`` as the node index counted from
-    ``S = 0``, so the grid must be uniform with spacing ``dS`` and must start one
-    step above zero. Choosing ``dS = S_max / nodes`` and running down to ``dS``
-    satisfies both exactly: node ``i`` sits at ``(nodes - i) * dS``.
+    So the span is clamped. Truncating the grid costs accuracy at the boundary,
+    but far above the strike the value is nearly linear in ``S`` and the Neumann
+    condition carries it, whereas a grid too coarse to resolve spot has nothing
+    to fall back on. Measured against closed form over spot 60-140, ``sig`` up
+    to 0.6 and ``T`` up to 2 years, the error is at worst 0.11 and typically
+    0.02. Beyond that envelope truncation starts to dominate — the worst case
+    at ``sig=0.8, T=3`` is about 0.4 — because the boundary assumes delta
+    reaches 1 while a dividend-paying call approaches ``exp(-y * T)``. A grid
+    uniform in ``log(S)`` would dissolve the tension; that is a change to the
+    scheme, not to this function.
+
+    The coefficients use ``j = S / dS`` as the node index counted from ``S = 0``,
+    so the grid must be uniform with spacing ``dS`` and must start one step above
+    zero. Choosing ``dS = S_max / nodes`` and running down to ``dS`` satisfies
+    both exactly: node ``i`` sits at ``(nodes - i) * dS``.
 
     Returns the grid and its spacing.
     """
     anchor = max(S0, K)
-    span = max(3.0, math.exp(5.0 * sig * math.sqrt(T)))
+    span = min(max(math.exp(4.0 * sig * math.sqrt(T)), MIN_SPAN), MAX_SPAN)
     S_max = anchor * span
     dS = S_max / nodes
     return np.linspace(S_max, dS, nodes), dS

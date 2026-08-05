@@ -22,7 +22,7 @@ the same point.
 
 import numpy as np
 
-from .contracts import PriceResult, fd_grid, interpolate_at
+from .contracts import MIN_FD_STEPS, PriceResult, fd_grid, interpolate_at
 from .greeks import N, Option, n
 
 
@@ -111,8 +111,10 @@ class European_Option(Option):
 
     def _fd_solve(self):
         """Crank-Nicolson backward through time. Returns the grid solution."""
-        M = max(2, int(round(self.T / self.fd_dt)))
-        dt = self.T / M   # exactly M steps spanning T, whatever fd_dt divides into
+        # A floor, not a step size: short-dated contracts need more steps than
+        # a fixed dt gives them. See MIN_FD_STEPS.
+        M = max(MIN_FD_STEPS, int(round(self.T / self.fd_dt)))
+        dt = self.T / M
         alpha = 0.5
 
         S, dS = fd_grid(self.S0, self.K, self.sig, self.T, self.fd_nodes)

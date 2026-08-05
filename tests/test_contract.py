@@ -22,10 +22,12 @@ import json
 import re
 from pathlib import Path
 
+import numpy as np
 import pytest
 from cases import CASES, option
 
 from pricing import AMERICAN_METHODS, EUROPEAN_METHODS, PriceResult
+from pricing.contracts import MIN_FD_STEPS, fd_grid
 
 FD_SPOT_BASELINE = json.loads((Path(__file__).parent / "fd_spot_baseline.json").read_text())
 REPO = Path(__file__).parent.parent
@@ -100,20 +102,43 @@ def test_no_caller_supplied_grid_survives_anywhere():
 
 
 @pytest.mark.parametrize("key", sorted(k for k in FD_SPOT_BASELINE if k != "_meta"))
-def test_derived_grid_reproduces_the_old_price_at_spot(key):
+def test_derived_grid_stays_close_to_the_grid_it_replaced(key):
     """Same answer at spot, off a grid the caller no longer chooses.
 
     The recorded values come from the pre-U4 solver on its S_min=1, S_max=300,
-    dS=1 grid, read at the node that coincides with the contract's spot. The
-    new grid has different extent and spacing, so agreement is to interpolation
-    and truncation error rather than to the bit.
+    dS=1 grid, read at the node that coincides with the contract's spot. The new
+    grid has different extent, spacing, and step count, so agreement is to
+    discretization error rather than to the bit — and the band has to be wide
+    enough to allow the new answer to be *better*, which for the three-month
+    60%-volatility contract it is by 0.07.
     """
     style, label = key.split(".")
     expected = FD_SPOT_BASELINE[key]["price"]
 
     got = option(style, label, "FD").priceOption().price
 
-    assert got == pytest.approx(expected, abs=tolerance(expected, PRICE_ABS, PRICE_REL))
+    assert got == pytest.approx(expected, abs=tolerance(expected, 0.10, 0.01))
+
+
+@pytest.mark.parametrize("label", sorted(CASES))
+def test_the_derived_grid_is_no_less_accurate_than_the_one_it_replaced(label):
+    """The claim worth making, where a closed form exists to make it against.
+
+    "Nothing moved" was the wrong test to keep: MIN_FD_STEPS moved several of
+    these deliberately. What has to hold is that none of them moved away from
+    the truth. The slack absorbs cases already accurate to a rounding error,
+    where the old value can win by a hair on noise alone.
+    """
+    from pricing import European_Option
+
+    truth = option("european", label, "BSM").priceOption().price
+    before = FD_SPOT_BASELINE[f"european.{label}"]["price"]
+    after = option("european", label, "FD").priceOption().price
+
+    assert abs(after - truth) <= abs(before - truth) + 0.005, (
+        f"{label}: error against closed form grew from "
+        f"{abs(before - truth):.4f} to {abs(after - truth):.4f}"
+    )
 
 
 # --------------------------------------------------------------------------
@@ -177,3 +202,68 @@ def test_finite_difference_gamma_is_real(label):
 def test_american_finite_difference_gamma_is_non_zero(label):
     """No closed form to check against, so only the weaker claim."""
     assert option("american", label, "FD").priceOption().gamma > 0
+
+
+# --------------------------------------------------------------------------
+# The grid rule itself, across an envelope wider than the case table
+# --------------------------------------------------------------------------
+
+# The case table tops out at sig=0.6, T=2, and the first version of the grid
+# rule passed every test above while being unusable outside that box: an
+# uncapped exp(5*sig*sqrt(T)) put the boundary at 1400x strike for sig=0.8,
+# T=3 and mispriced by 1140. These two tests are what catch that class of
+# error — they check the grid the contract produces, not just the contracts we
+# happened to tabulate.
+ENVELOPE = [(sig, T) for sig in (0.1, 0.3, 0.6, 0.8, 1.2) for T in (1 / 12, 1.0, 3.0)]
+
+
+@pytest.mark.parametrize("sig,T", ENVELOPE)
+def test_grid_both_contains_and_resolves_the_contract(sig, T):
+    """Wide enough for the boundary to be harmless, fine enough to see spot."""
+    spot = 100.0
+    S, dS = fd_grid(spot, 100.0, sig, T)
+
+    assert S[0] >= 2.0 * spot, "boundary too close to the contract"
+    assert S[0] <= 15.0 * spot, "boundary so far out that spot is unresolved"
+    assert dS <= spot / 25, f"spot spans fewer than 25 cells (dS={dS:.2f})"
+    assert S[-1] == pytest.approx(dS), "grid must start one step above zero"
+    assert np.allclose(np.diff(S), -dS), "grid must be uniform"
+
+
+@pytest.mark.parametrize("sig,T", ENVELOPE)
+@pytest.mark.parametrize("kind", ["call", "put"])
+def test_finite_differences_stay_accurate_across_the_envelope(kind, sig, T):
+    """Against closed form, over the same envelope.
+
+    A guard against a discretization that stops working, not a convergence
+    tolerance — U5 sets those, on a tighter envelope. 2% is where the two known
+    degradations sit: extent truncation at the top corner (sig=1.2, T=3 runs
+    about 1.7%) and the Crank-Nicolson kink at the short end. Anything past this
+    is a new failure, not a known one.
+    """
+    from pricing import European_Option
+
+    fd = European_Option(kind, 100.0, 100.0, 0.05, sig, 0.02, T, "FD").priceOption()
+    closed_form = European_Option(kind, 100.0, 100.0, 0.05, sig, 0.02, T, "BSM").priceOption()
+
+    assert fd.price == pytest.approx(closed_form.price, rel=0.02, abs=0.05)
+
+
+@pytest.mark.parametrize("kind", ["call", "put"])
+def test_short_dated_contracts_get_enough_time_steps(kind):
+    """The regression that MIN_FD_STEPS exists for.
+
+    A step per trading day gives a one-month contract 21 of them, which
+    misprices by about 3%. Pinning the floor here rather than only the price
+    keeps the reason visible: the earlier code passed every price assertion in
+    this file while being wrong for short maturities, because nothing in the
+    case table expires inside three months.
+    """
+    from pricing import European_Option
+
+    T = 1 / 12
+    fd = European_Option(kind, 100.0, 100.0, 0.05, 0.6, 0.02, T, "FD").priceOption()
+    closed_form = European_Option(kind, 100.0, 100.0, 0.05, 0.6, 0.02, T, "BSM").priceOption()
+
+    assert round(T * 252) < MIN_FD_STEPS, "case no longer exercises the floor"
+    assert fd.price == pytest.approx(closed_form.price, rel=0.005)
