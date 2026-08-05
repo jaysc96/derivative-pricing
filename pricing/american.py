@@ -4,31 +4,30 @@ Four methods: binomial and trinomial trees with an early-exercise test at each
 node, Longstaff-Schwartz least-squares Monte Carlo, and Crank-Nicolson finite
 differences.
 
-Two known defects live here, preserved so that U3's extraction stayed provable
-against ``tests/baseline_prices.json``:
+Two defects were fixed here in U6.
 
-* ``FD`` tests early exercise against the previous time slice
-  (``np.maximum(CV[:, i], CV[:, i + 1])``) rather than against the exercise
-  payoff, so it does not enforce the American condition it is meant to.
-* ``LSMC`` solves its regression with ``np.linalg.solve`` on a 4x4 normal-equations
-  matrix built from the in-the-money paths, which is rank-deficient whenever
-  fewer than four paths are in the money. Deep out-of-the-money contracts raise
-  ``LinAlgError`` rather than degrading.
+``LSMC`` fitted its continuation value by solving the normal equations, and the
+4x4 matrix is rank-deficient whenever fewer than four paths are in the money.
+Deep out-of-the-money contracts raised ``LinAlgError`` rather than degrading —
+48 of the convergence suite's failures, and the only defect in the codebase
+that failed loudly. It now uses least squares on the design matrix.
 
-Both tree methods also rebuild the stock lattice inside the backward loop, which
-U13 hoists. U6 fixes the defects.
+``FD`` tested early exercise against the previous time slice rather than
+against the exercise payoff. Unlike the others this cost nothing: the terminal
+slice is the payoff and a vanilla American option is worth weakly more the
+longer it runs, so the two rules agreed at every node of every time step —
+verified by running both inside the solver, zero divergence over 199 steps. It
+was fixed because it stops being true the moment value is not monotonic in
+maturity, which a discrete dividend across an ex-date would do.
 
-``FD`` is the one method U4 changed: it builds its own grid from the contract
-and returns a scalar at spot rather than a vector across bounds the caller
-guessed. The early-exercise defect above is untouched by that change and still
-shows up as American puts pricing above their European counterparts for the
-wrong reason.
+Both tree methods still rebuild the stock lattice inside the backward loop,
+which U13 hoists.
 """
 
 import numpy as np
 from scipy.linalg import lu_factor, lu_solve
 
-from .contracts import MIN_FD_STEPS, fd_grid, interpolate_at
+from .contracts import interpolate_at
 from .greeks import Option
 
 
@@ -103,12 +102,23 @@ class American_Option(Option):
             EV[:, i] = np.maximum(self.phi * (St[:, i] - 1), 0)
 
             ITM = np.where(EV[:, i] > 0)[0]
+            if ITM.size == 0:
+                # Nothing to decide: no path can exercise here.
+                continue
             Y = (Index[ITM, i + 1:] * EV[ITM, i + 1:] * np.exp(-self.r * np.arange(1, m - i) * dt)).sum(axis=1)
 
+            # Least squares on the design matrix rather than np.linalg.solve on
+            # the normal equations. Two reasons. The 4x4 matrix f @ f.T is
+            # singular whenever fewer than four paths are in the money, which
+            # raised LinAlgError on exactly the deep out-of-the-money contracts
+            # the volatility surface depends on. And forming the normal
+            # equations squares the condition number, which a basis of powers
+            # of the same variable can ill afford. lstsq degrades to the
+            # minimum-norm solution instead of failing, so a step with too few
+            # paths contributes a weak continuation estimate rather than
+            # destroying the valuation.
             f = np.array([St[ITM, i]**j for j in range(4)])
-            A = np.dot(f, f.T)
-            b = np.dot(f, Y)
-            a = np.linalg.solve(A, b)
+            a, *_ = np.linalg.lstsq(f.T, Y, rcond=None)
             ECV = np.dot(f.T, a)
 
             Index[ITM[EV[ITM, i] >= ECV], i] = 1
@@ -124,18 +134,17 @@ class American_Option(Option):
 
     def _fd_solve(self):
         """Crank-Nicolson backward through time. Returns the grid solution."""
-        # A floor, not a step size: short-dated contracts need more steps than
-        # a fixed dt gives them. See MIN_FD_STEPS.
-        M = max(MIN_FD_STEPS, int(round(self.T / self.fd_dt)))
+        S, dS, M = self._fd_discretization()
         dt = self.T / M
         alpha = 0.5
 
-        S, dS = fd_grid(self.S0, self.K, self.sig, self.T, self.fd_nodes)
         N_grid = len(S)
         j = S / dS
 
+        exercise = np.maximum(self.phi * (S - self.K), 0)
+
         CV = np.zeros((N_grid, M))
-        CV[:, -1] = np.maximum(self.phi * (S - self.K), 0)
+        CV[:, -1] = exercise
 
         a1 = (self.sig**2 * j**2 + (self.r - self.y) * j) * (1 - alpha) * dt / 2
         a2 = - 1 - (self.sig**2 * j**2 + self.r) * (1 - alpha) * dt
@@ -175,6 +184,12 @@ class American_Option(Option):
 
         for i in range(M-2,-1,-1):
             CV[:, i] = lu_solve(lu, np.dot(RA, CV[:, i + 1]) + B)
-            CV[:, i] = np.maximum(CV[:, i], CV[:, i + 1])
+            # Against the exercise payoff, which is what the American condition
+            # actually says. This previously compared against the previous time
+            # slice and happened to give identical numbers — the terminal slice
+            # is the payoff and vanilla American value never falls as maturity
+            # lengthens, so the two agreed at every node. It stops agreeing the
+            # moment that monotonicity does, which a discrete dividend would do.
+            CV[:, i] = np.maximum(CV[:, i], exercise)
 
         return CV[:, 0], S, dS

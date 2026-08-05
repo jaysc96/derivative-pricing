@@ -43,6 +43,24 @@ DEFAULT_FD_DT = 1.0 / 252.0
 MIN_FD_STEPS = 200
 
 
+# Bump sizes for the Greeks that have no closed form, each scaled to its own
+# input rather than sharing one epsilon.
+#
+# Central differences make the choice much less delicate than it was: the
+# truncation error is O(h^2) instead of O(h), so a bump can be small enough to
+# be local without the estimate degrading. These sit near the square root of
+# machine epsilon relative to each input, which is the standard balance point
+# between truncation error (falling with h) and cancellation error (rising as
+# the two repriced values converge).
+BUMP_SPOT = 0.005          # fraction of spot
+BUMP_VOL = 0.01            # fraction of volatility
+BUMP_VOL_FLOOR = 1e-3      # absolute, for near-zero volatility
+BUMP_RATE = 0.01           # fraction of the rate
+BUMP_RATE_FLOOR = 1e-4     # absolute, one basis point
+BUMP_TIME = 0.01           # fraction of maturity
+BUMP_TIME_CAP = 1 / 365    # absolute, one calendar day
+
+
 @dataclass(frozen=True)
 class PriceResult:
     """A price at the contract's spot and the five Greeks that go with it.

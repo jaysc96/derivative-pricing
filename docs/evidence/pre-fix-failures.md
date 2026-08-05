@@ -131,6 +131,40 @@ dividends across an ex-date would do, it silently starts returning wrong
 answers. But it is a robustness fix, not a pricing fix, and U6 should be
 described that way.
 
+## After U6
+
+All 1474 tests pass. Each fix was checked to be load-bearing by reverting it
+alone and re-running the suite:
+
+| Reverted | Result |
+|---|---|
+| Vega identity | 33 failed |
+| Monte Carlo drift | 80 failed |
+| Longstaff-Schwartz least squares | 15 failed |
+| Central difference on spot (back to one-sided) | 2 failed |
+| Time bump back to a flat 0.05 years | 1 failed |
+| American finite-difference early exercise | **still green** |
+
+The last row is the finding above, restated as a measurement: the suite cannot
+tell the two rules apart because nothing distinguishes them.
+
+Two tests were rewritten rather than left to pass. `test_vega_…` asserted the
+defect's shape — a bumped-to-closed-form ratio of `K / S` — and now asserts that
+ratio is 1 at every moneyness. The U3 baseline's Greek columns and its Monte
+Carlo and Longstaff-Schwartz prices were retired, because U6 changed them
+deliberately; the forty deterministic prices it recorded stay under assertion,
+and the count of retired entries is itself asserted so a later unit cannot
+widen its own licence.
+
+One test was added that the pre-fix suite should have had.
+`test_central_differences_recover_exact_greeks` differences closed-form prices,
+which have no discretization error, so it measures the bump scheme alone. The
+tolerance sweep against finite differences cannot do that — it is floored by the
+pricing error of the method it differences, which is why rho's tolerance is
+2.5%: on the six-month 80-strike call the price is 0.95% out and rho comes back
+1.03% out, unchanged across bump sizes from 1e-4 to 1e-2. Against the isolated
+test the old machinery fails on theta by 146x, and on vega and rho by 3x.
+
 ## Consequences for the plan
 
 1. **R3 needs a fourth defect.** The Longstaff-Schwartz singular matrix is the

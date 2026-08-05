@@ -49,9 +49,28 @@ METHODS = {"european": EUROPEAN_METHODS, "american": AMERICAN_METHODS}
 # would be orders of magnitude larger.
 TOL = 5e-4
 
+# What each later unit was allowed to change, and what therefore no longer
+# describes current behavior. Listing it here rather than deleting the entries
+# keeps the exemptions countable — a unit cannot quietly widen its own licence.
+#
+#   U4  FD          returned a vector across a caller-supplied grid; there is no
+#                   such grid now. tests/test_contract.py carries FD's proof.
+#   U6  MC price    the drift omitted the dividend yield.
+#   U6  LSMC price  the regression solved singular normal equations, and two of
+#                   these entries recorded the resulting crash.
+#   U6  all Greeks  rebuilt on central differences with per-input bump scales,
+#                   and the closed-form vega identity was corrected.
+#
+# What survives is the deterministic prices — closed form and both trees. U6
+# touched none of them, so they remain a real regression guard on the move.
+SUPERSEDED_METHODS_ENTIRELY = ("FD", "MC", "LSMC")
+LIVE_FIELDS = ("price",)
+
 ALL_KEYS = sorted(key for key in BASELINE if key != "_meta")
-LIVE_KEYS = [key for key in ALL_KEYS if not key.endswith(".FD")]
-SUPERSEDED_KEYS = [key for key in ALL_KEYS if key.endswith(".FD")]
+LIVE_KEYS = [
+    key for key in ALL_KEYS if key.split(".")[2] not in SUPERSEDED_METHODS_ENTIRELY
+]
+SUPERSEDED_KEYS = [key for key in ALL_KEYS if key not in LIVE_KEYS]
 
 
 def build(key):
@@ -112,19 +131,12 @@ def test_the_six_methods_are_covered_between_the_two_styles():
 
 @pytest.mark.parametrize("key", LIVE_KEYS)
 def test_matches_pre_move_baseline(key):
+    """Closed-form and tree prices, still exactly what they were before U3."""
     expected = BASELINE[key]
-    opt = build(key)
+    result = build(key).priceOption()
 
-    if "raises" in expected:
-        with pytest.raises(getattr(np.linalg, expected["raises"])):
-            opt.priceOption()
-        return
-
-    result = opt.priceOption()
-
-    for name, want in expected.items():
-        got = getattr(result, name)
-        assert got == pytest.approx(want, abs=TOL), name
+    for name in LIVE_FIELDS:
+        assert getattr(result, name) == pytest.approx(expected[name], abs=TOL), name
 
 
 def test_baseline_covers_every_style_and_method():
@@ -138,14 +150,32 @@ def test_baseline_covers_every_style_and_method():
     assert set(ALL_KEYS) == want
 
 
-def test_only_the_finite_difference_entries_are_superseded():
-    """Pin what U4 was allowed to change, so a later unit cannot widen it.
+def test_the_superseded_set_is_exactly_what_was_licensed():
+    """Pin the exemptions so a later unit cannot widen its own licence.
 
-    The finite-difference entries recorded a vector across a grid the caller
-    supplied. U4 removed that grid, so there is nothing left to compare against
-    and ``tests/test_contract.py`` takes over. Every other method is untouched
-    and stays under the assertion above.
+    Sixteen finite-difference entries (U4), sixteen Monte Carlo and Longstaff-
+    Schwartz entries (U6), leaving forty deterministic prices under assertion.
     """
-    assert len(SUPERSEDED_KEYS) == 16
-    assert all(key.endswith(".FD") for key in SUPERSEDED_KEYS)
-    assert len(LIVE_KEYS) == 56
+    assert len(SUPERSEDED_KEYS) == 32
+    assert all(
+        key.split(".")[2] in SUPERSEDED_METHODS_ENTIRELY for key in SUPERSEDED_KEYS
+    )
+    assert len(LIVE_KEYS) == 40
+    assert {key.split(".")[2] for key in LIVE_KEYS} == {"BSM", "BT", "TT"}
+
+
+def test_the_defects_the_baseline_recorded_are_gone():
+    """The baseline's two recorded crashes now price.
+
+    ``american.otm_call_1y.LSMC`` and ``american.otm_put_2y.LSMC`` were
+    committed as ``{"raises": "LinAlgError"}`` because deep out-of-the-money
+    contracts left fewer than four paths in the money and the normal equations
+    went singular. Reading the fix back off the artifact that recorded the
+    defect is the point of having recorded it.
+    """
+    crashed = [key for key in ALL_KEYS if "raises" in BASELINE[key]]
+    assert crashed == ["american.otm_call_1y.LSMC", "american.otm_put_2y.LSMC"]
+
+    for key in crashed:
+        value = build(key).priceOption().price
+        assert value > 0, f"{key} still does not price"

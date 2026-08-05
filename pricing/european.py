@@ -3,27 +3,27 @@
 Five methods: closed-form Black-Scholes-Merton, binomial and trinomial trees,
 Monte Carlo with antithetic variates, and Crank-Nicolson finite differences.
 
-Two known defects live here, preserved so that U3's extraction stayed provable
-against ``tests/baseline_prices.json``:
+Two defects were fixed here in U6.
 
-* ``BSM`` computes vega as ``S * exp(-rT) * n(d2)``, mixing the two equivalent
-  vega identities. The result is the true vega scaled by ``S / K`` — correct
-  only at the money.
-* ``MC`` omits the dividend yield from its drift, so it prices a
-  non-dividend-paying asset regardless of the ``y`` it was given.
+``BSM`` computed vega as ``S * exp(-rT) * n(d2)``, taking the spot term from one
+of the two equivalent identities and the discount factor and density from the
+other. The result was the true vega scaled by ``S / K`` — right at the money,
+25% out one strike away.
 
-U6 fixes both.
+``MC`` omitted the dividend yield from its drift, so it priced a
+non-dividend-paying asset whatever ``y`` it was handed. Worst deviation 10.7%
+against its five siblings, and the largest of the value errors in the codebase.
 
-``FD`` is the one method U4 changed: it builds its own grid from the contract
-and returns a scalar at spot rather than a vector across bounds the caller
-guessed. ``tests/test_contract.py`` holds it to what the old grid produced at
-the same point.
+``FD`` changed shape in U4 rather than U6: it builds its own grid from the
+contract and returns a scalar at spot rather than a vector across bounds the
+caller guessed. ``tests/test_contract.py`` holds it to what the old grid
+produced at the same point.
 """
 
 import numpy as np
 from scipy.linalg import lu_factor, lu_solve
 
-from .contracts import MIN_FD_STEPS, PriceResult, fd_grid, interpolate_at
+from .contracts import PriceResult, interpolate_at
 from .greeks import N, Option, n
 
 
@@ -39,14 +39,19 @@ class European_Option(Option):
         gamma = np.exp(- self.y * self.T) * n(zp) / self.sig / np.sqrt(self.T) / self.S0
         deltaK = - self.phi * np.exp(- self.r * self.T) * N(self.phi * zm)
         theta = self.r * self.K * deltaK + self.y * self.S0 * delta - self.sig**2 * self.S0**2 * gamma / 2
-        vega = self.S0 * np.sqrt(self.T) * np.exp(- self.r * self.T) * n(zm)
+        # Both identities are equivalent — S*exp(-yT)*sqrt(T)*n(d1) and
+        # K*exp(-rT)*sqrt(T)*n(d2) — but only if each is taken whole. Mixing
+        # them, as this did by pairing the spot term with the rate discount and
+        # n(d2), yields the true vega scaled by S/K: right at the money and
+        # 25% out one strike away.
+        vega = self.S0 * np.exp(- self.y * self.T) * np.sqrt(self.T) * n(zp)
         return PriceResult(price=V, delta=delta, gamma=gamma, theta=theta, vega=vega, rho=rho)
 
     def MC(self):
         m = int(self.T / self.dt)
         np.random.seed(self.seed)
         z = np.random.normal(size = (self.n, m))
-        mu = self.r - (self.sig**2) / 2
+        mu = self.r - self.y - (self.sig**2) / 2
 
         ST1 = np.zeros((self.n, m+1))
         ST2 = np.zeros((self.n, m+1))
@@ -112,13 +117,10 @@ class European_Option(Option):
 
     def _fd_solve(self):
         """Crank-Nicolson backward through time. Returns the grid solution."""
-        # A floor, not a step size: short-dated contracts need more steps than
-        # a fixed dt gives them. See MIN_FD_STEPS.
-        M = max(MIN_FD_STEPS, int(round(self.T / self.fd_dt)))
+        S, dS, M = self._fd_discretization()
         dt = self.T / M
         alpha = 0.5
 
-        S, dS = fd_grid(self.S0, self.K, self.sig, self.T, self.fd_nodes)
         N_grid = len(S)
         j = S / dS
 
