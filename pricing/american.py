@@ -39,17 +39,20 @@ class American_Option(Option):
         d = 1 / u
         p = (np.exp((self.r - self.y) * dt) - d) / (u - d)
 
-        ST = np.array([self.S0 * u**(self.n - i) * d**i for i in range(self.n + 1)])
+        disc = np.exp(-self.r * dt)
 
-        V = np.maximum(self.phi * (ST - self.K), 0)
+        # The lattice was rebuilt inside the backward loop, which is O(n^2)
+        # exponentiations for a set of values that never changes. Powers of u
+        # and d are computed once and sliced per step.
+        u_pow = u ** np.arange(self.n + 1)
+        d_pow = d ** np.arange(self.n + 1)
+
+        V = np.maximum(self.phi * (self.S0 * u_pow[::-1] * d_pow - self.K), 0)
 
         for i in range(self.n - 1, -1, -1):
-            Vt = np.zeros(i+1)
-            St = np.array([self.S0 * u**(i - k) * d**k for k in range(i+1)])
-            ev = np.maximum(self.phi * (St - self.K),0)
-            for j in range(i+1):
-                Vt[j] = max(ev[j], np.exp(- self.r * dt) * (p * V[j] + (1-p) * V[j+1]))
-            V = Vt
+            St = self.S0 * u_pow[i::-1] * d_pow[:i + 1]
+            ev = np.maximum(self.phi * (St - self.K), 0)
+            V = np.maximum(ev, disc * (p * V[:-1] + (1 - p) * V[1:]))
         return V[0]
 
     def TT(self):
@@ -63,16 +66,18 @@ class American_Option(Option):
         pu = 0.5 * ((self.sig**2 * dt + gam**2 * dt**2) / dXu**2 + gam * dt / dXu)
         pm = 1 - pd - pu
 
-        ST = np.array([self.S0 * u**max(self.n - i, 0) * d**max(i - self.n, 0) for i in range(2 * self.n + 1)])
+        disc = np.exp(-self.r * dt)
+
+        u_pow = u ** np.arange(self.n + 1)
+        d_pow = d ** np.arange(self.n + 1)
+
+        ST = self.S0 * np.concatenate([u_pow[:0:-1], d_pow])
         V = np.maximum(self.phi * (ST - self.K), 0)
 
         for i in range(self.n - 1, -1, -1):
-            Vt = np.zeros(2 * i + 1)
-            St = np.array([self.S0 * u**max(i - k, 0) * d**max(k - i, 0) for k in range(2 * i + 1)])
+            St = self.S0 * np.concatenate([u_pow[i:0:-1], d_pow[:i + 1]])
             ev = np.maximum(self.phi * (St - self.K), 0)
-            for j in range(2 * i + 1):
-                Vt[j] = max(ev[j], np.exp(-self.r * dt) * (pu * V[j] + pm * V[j+1] + pd * V[j+2]))
-            V = Vt
+            V = np.maximum(ev, disc * (pu * V[:-2] + pm * V[1:-1] + pd * V[2:]))
         return V[0]
 
     def LSMC(self):

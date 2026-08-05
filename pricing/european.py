@@ -53,20 +53,24 @@ class European_Option(Option):
         z = np.random.normal(size = (self.n, m))
         mu = self.r - self.y - (self.sig**2) / 2
 
-        ST1 = np.zeros((self.n, m+1))
-        ST2 = np.zeros((self.n, m+1))
+        # Only the terminal value is needed for a European payoff, so evolve two
+        # vectors rather than storing the whole path matrix. At 50,000 paths and
+        # 252 steps that is 400KB instead of 200MB, and the arithmetic per step
+        # is unchanged.
+        drift = mu * self.dt
+        diffusion = self.sig * np.sqrt(self.dt)
 
-        ST1[:,0] += self.S0
-        ST2[:,0] += self.S0
+        ST1 = np.full(self.n, self.S0)
+        ST2 = np.full(self.n, self.S0)
 
         for i in range(m):
-            ST1[:, i + 1] = ST1[:, i] * np.exp(mu * self.dt + self.sig * np.sqrt(self.dt) * z[:, i])
-            ST2[:, i + 1] = ST2[:, i] * np.exp(mu * self.dt - self.sig * np.sqrt(self.dt) * z[:, i])
+            ST1 = ST1 * np.exp(drift + diffusion * z[:, i])
+            ST2 = ST2 * np.exp(drift - diffusion * z[:, i])
 
         if self.option_type == 'call':
-            VTa = (np.where(ST1[:, -1] < self.K, 0, ST1[:, -1] - self.K) + np.where(ST2[:, -1] < self.K, 0, ST2[:, -1] - self.K)) / 2
+            VTa = (np.where(ST1 < self.K, 0, ST1 - self.K) + np.where(ST2 < self.K, 0, ST2 - self.K)) / 2
         else:
-            VTa = (np.where(ST1[:, -1] > self.K, 0, self.K - ST1[:, -1]) + np.where(ST2[:, -1] > self.K, 0, self.K - ST2[:, -1])) / 2
+            VTa = (np.where(ST1 > self.K, 0, self.K - ST1) + np.where(ST2 > self.K, 0, self.K - ST2)) / 2
 
         Vta_est = np.exp(-self.r * self.T) * VTa.mean()
         return Vta_est
@@ -78,15 +82,18 @@ class European_Option(Option):
         d = 1 / u
         p = (np.exp((self.r - self.y) * dt) - d) / (u - d)
 
-        ST = np.array([self.S0 * u**(self.n - i) * d**i for i in range(self.n + 1)])
+        disc = np.exp(-self.r * dt)
 
-        V = np.maximum(self.phi * (ST - self.K), 0)
+        # Powers of u and d once, reused every step. The terminal node k is
+        # S0 * u**(n-k) * d**k, kept as that product rather than u**(n-2k) so
+        # the arithmetic matches the scalar version bit for bit.
+        u_pow = u ** np.arange(self.n + 1)
+        d_pow = d ** np.arange(self.n + 1)
 
-        for i in range(self.n - 1, -1, -1):
-            Vt = np.zeros(i+1)
-            for j in range(i+1):
-                Vt[j] = np.exp(-self.r * dt) * (p * V[j] + (1-p) * V[j+1])
-            V = Vt
+        V = np.maximum(self.phi * (self.S0 * u_pow[::-1] * d_pow - self.K), 0)
+
+        for _ in range(self.n):
+            V = disc * (p * V[:-1] + (1 - p) * V[1:])
         return V[0]
 
     def TT(self):
@@ -100,14 +107,16 @@ class European_Option(Option):
         pu = 0.5 * ((self.sig**2 * dt + gam**2 * dt**2) / dXu**2 + gam * dt / dXu)
         pm = 1 - pd - pu
 
-        ST = np.array([self.S0 * u**max(self.n - i, 0) * d**max(i - self.n, 0) for i in range(2 * self.n + 1)])
+        disc = np.exp(-self.r * dt)
+
+        u_pow = u ** np.arange(self.n + 1)
+        d_pow = d ** np.arange(self.n + 1)
+
+        ST = self.S0 * np.concatenate([u_pow[:0:-1], d_pow])
         V = np.maximum(self.phi * (ST - self.K), 0)
 
-        for i in range(self.n - 1, -1, -1):
-            Vt = np.zeros(2 * i + 1)
-            for j in range(2 * i + 1):
-                Vt[j] = np.exp(-self.r * dt) * (pu * V[j] + pm * V[j+1] + pd * V[j+2])
-            V = Vt
+        for _ in range(self.n):
+            V = disc * (pu * V[:-2] + pm * V[1:-1] + pd * V[2:])
         return V[0]
 
     def FD(self):
