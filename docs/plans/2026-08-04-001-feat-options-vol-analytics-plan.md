@@ -17,7 +17,7 @@ execution: code
 - **Product authority:** Jay Singh Chauhan — sole developer, sole decision-maker.
 - **Primary audience:** Technical reviewers evaluating the repository for quant developer and data science roles. Paying users are a later-phase audience with no requirements in this contract.
 - **Open blockers:** None. The provider spike (U2) must confirm bid and ask are populated rather than merely present, but it is sequenced work rather than an unanswered question — a negative result cuts the quality gate on a stated rule instead of stalling the plan.
-- **Execution profile:** Test-first where defects are known. U5 writes the convergence suite before U6 fixes anything, so the suite is proven to catch the three named defects rather than asserted to. Everywhere else, normal build-then-verify.
+- **Execution profile:** Test-first where defects are known. U5 writes the convergence suite before U6 fixes anything, so the suite is proven to catch the named defects rather than asserted to. Everywhere else, normal build-then-verify. This paid for itself immediately: writing the suite first is what found the fourth defect R3 had missed, and what showed that one of the three it named costs nothing — see R3 and `docs/evidence/pre-fix-failures.md`.
 - **Stop conditions:** Stop and ask before spending money on market data, before moving off the current host, and before adding a requirement that serves a paying user rather than a technical reviewer. The fallback adapter is the one pre-approved exception: once its trigger fires, build it without asking, because the thing it protects is accruing loss while the question is open. Stop and re-plan if the provider spike finds bid and ask are mostly unpopulated across every candidate symbol.
 - **Tail ownership:** Stage 1b runs unattended from the moment it lands and is never "finished" — the capture job accruing history is the tail, and it outlives every other unit in this plan.
 
@@ -71,14 +71,19 @@ Two things do survive that objection, and they are different kinds of evidence. 
 
 - R1. The pricing math is packaged as a library independent of the web application, with the application as one consumer of it.
 - R2. An automated test suite asserts that the pricing methods available for each exercise style converge to each other within stated tolerances.
-- R3. The known pricing defects are fixed: the closed-form vega identity, the Monte Carlo dividend drift, the American finite-difference early-exercise test, and the Greek estimation machinery, which uses one-sided differences with an oversized time bump and reuses the volatility epsilon as the interest-rate bump.
-- R4. Greeks produced by finite differencing match closed-form Black-Scholes Greeks within a stated per-Greek tolerance.
+- R3. The known pricing defects are fixed. Amended during U5 after the suite measured them; the original wording named three and missed the most severe. In descending order of measured impact:
+  - R3a. The Longstaff-Schwartz regression fits its continuation value by solving normal equations whose 4x4 matrix is rank-deficient whenever fewer than four paths are in the money, raising `LinAlgError` on deep out-of-the-money contracts. The only defect that fails loudly rather than quietly, and it fires exactly where the volatility surface lives.
+  - R3b. The Monte Carlo drift omits the dividend yield, pricing a non-dividend-paying asset whatever `y` it is handed. Worst deviation from its five siblings, 10.7%.
+  - R3c. The closed-form vega mixes the two equivalent identities, taking the spot term from one and the discount factor and density from the other. The result is the true vega scaled by `S / K` — exact at the money, 25% out one strike away.
+  - R3d. The Greek estimation machinery uses one-sided differences with a time bump of a flat 0.05 years and reuses the volatility epsilon as the interest-rate bump. Measured against differences taken on closed-form prices, theta is out by up to 73% and vega and rho by about 1.5%.
+  - R3e. The American finite-difference solver tests early exercise against the previous time slice rather than the exercise payoff. **Reclassified from a pricing defect to a robustness one**, on evidence: the terminal slice is the payoff and a vanilla American option is worth weakly more the longer it runs, so the two rules coincide at every node — verified by running both inside the solver over a two-year put, zero divergence across 199 time steps. It is fixed because it states a condition it does not mean and is correct only by accident, ceasing to be so where value is not monotonic in maturity. No test can distinguish the two rules, and none should be written that claims to.
+- R4. Greeks produced by finite differencing match closed-form Black-Scholes Greeks within a stated per-Greek tolerance. Amended during U6: **that tolerance is floored by the pricing accuracy of the method being differenced, not by the differencing.** The six-month 80-strike call is priced 0.95% out by the finite-difference scheme and its rho comes back 1.03% out, unchanged across bump sizes from 1e-4 to 1e-2 — so no bump choice can meet a 1% tolerance there. R4 is therefore satisfied at 2.5% for rho, and the estimation machinery is held to a much tighter 0.5% by a separate test that differences closed-form prices, where no discretization error is present to inherit.
 - R5. Structural relationships hold under test: put-call parity for European options, and American value never below European value.
 - R6. The test suite runs automatically on every push.
 - R7. The project declares its dependencies so that a fresh clone can install and run it.
 - R26. The repository landing page states what the library proves and carries the convergence results, the benchmark ratio, and the install-and-test command sequence, so a reviewer can evaluate the evidence without cloning.
 - R27. Every pricing method exposes the same contract — a scalar price and Greeks at the supplied spot — with any internal grid derived from the contract parameters rather than caller-supplied bounds.
-- R31. The convergence suite anchors at least one European and one American parameter set to an independent external reference, so agreement is validated against something outside the repository.
+- R31. The convergence suite anchors at least one European and one American parameter set to an independent external reference, so agreement is validated against something outside the repository. **Partially satisfied, and the gap is a citation rather than a number.** The anchors use Hull's parameter sets and printed values, but the edition and page could not be verified during U5 and no quotable copy surfaced. Each value is instead reproduced by an independent implementation in `tests/reference_values.py` that shares no code with `pricing/` — 4.7594 and 0.8086 against Hull's printed 4.76 and 0.81, 4.4885 against 4.49. That makes a mis-remembered parameter set unlikely without making the reference external. Closing R31 requires confirming the citation against a copy of Hull; until then the README must not describe the anchor as published.
 
 **Implied volatility**
 
@@ -289,6 +294,10 @@ None blocking. Storage schema and the solver's bracketing strategy are now settl
 
 - KTD10. Anchor R31's convergence tests to published textbook values rather than a second library. Matching another implementation proves agreement with someone else's possible bug. Hull's worked examples give European and American parameter sets with printed values, which is an independent check.
 
+  Amended during U5, with two things learned by doing it. First, the citation could not be verified offline, so the anchors are backed by an independent reimplementation instead — see the amended R31 for what that does and does not buy.
+
+  Second, and the trap worth carrying forward: **a printed value is only an anchor for the discretization that produced it.** Hull prints 4.49 for the American put, and that is the result of a *five-step* tree. The converged value for the same contract is 4.2842. Checking a 200-step method against 4.49 would have been wrong by 0.2 in the direction of appearing correct, and the suite would have gone green on it. The committed anchor pins the five-step tree, which is what the book actually computed, and the converged figure is recorded separately as what it is — a number this repository produced, not a published one.
+
 - KTD11. Keep Flask and add a JSON blueprint; do not migrate frameworks. The API surface here is small, the existing deployment works, and a framework migration would consume the schedule without producing evidence a reviewer values.
 
 - KTD12. Use pytest and GitHub Actions. Neither exists in the repository today, and both are what a reviewer expects to find.
@@ -401,16 +410,16 @@ U-IDs are stable and never renumbered, so execution order and numeric order dive
   - American methods agree pairwise within their stated tolerance across the same grid.
   - Each finite-difference Greek matches its closed-form counterpart within a per-Greek tolerance — this fails on vega until U6, because the current identity is correct only at the money.
   - Monte Carlo agrees with closed form on a dividend-paying contract — this fails until U6, because the drift omits the dividend yield.
-  - American finite-difference value is never below the exercise payoff and never below the European value — this fails until U6, because the early-exercise test compares against the previous time slice.
+  - American finite-difference value is never below the exercise payoff and never below the European value. **This was expected to fail until U6 and does not — the expectation was wrong, not the test.** See R3e; the two early-exercise rules coincide at every node, so no structural test can separate them. Keep the test: it is required by R5 regardless, and it holds the relation against every future engine change.
   - Both anchored parameter sets match their published values.
-- **Verification:** The suite runs and fails on exactly the three named defects, plus the Greek tolerances. A green suite at this point means the tests are too loose.
+- **Verification:** The suite runs and fails on the named defects plus the Greek tolerances. A green suite at this point means the tests are too loose. Achieved: 152 failures, partitioning cleanly by cause — 80 Monte Carlo drift, 48 Longstaff-Schwartz crash, 16 vega, 7 rho, 1 theta, 0 structural.
 - **Note:** U5 and U6 land on one branch. U3's CI runs pytest on every push, so pushing U5's deliberately-failing suite on its own would turn the gate red for a reason that is not a regression. Verify the failing state locally, then fix on the same branch and push once.
 - **Deliverable:** Capture the pre-fix pytest output to `docs/evidence/pre-fix-failures.md` and commit it. Landing U5 and U6 together means CI never observes the red state, so without this artifact the repository holds no evidence the suite actually caught the three defects — a reviewer would see only a green suite arriving beside its own fixes, which is the asserted-rather-than-proven outcome the execution profile exists to avoid. This is the deliverable that makes the plan's central claim checkable.
 
 ### U6. Defect fixes
 
-- **Goal:** Turn U5's suite green by fixing the three defects and rebuilding the Greek machinery.
-- **Requirements:** R3
+- **Goal:** Turn U5's suite green by fixing the defects and rebuilding the Greek machinery.
+- **Requirements:** R3 (all of R3a-R3e)
 - **Files:** `pricing/european.py`, `pricing/american.py`, `pricing/greeks.py`, `tests/test_greeks.py`
 - **Approach:** Correct the vega identity so the discount factor, spot term, and normal density come from the same one of the two equivalent forms. Add the dividend yield to the Monte Carlo drift, matching its five sibling methods. Compare the American finite-difference continuation value against the exercise payoff rather than the previous time slice. Rebuild Greek estimation on central differences with per-input bump scales (KTD5).
 - **Test scenarios:** U5's suite is the test. No new scenarios — if a fix needs a test U5 did not write, U5 was incomplete.
@@ -421,13 +430,15 @@ U-IDs are stable and never renumbered, so execution order and numeric order dive
 - **Goal:** Make the pricers fast enough that everything built on them is cheap to run and test, evidenced against a recorded baseline.
 - **Requirements:** R12
 - **Files:** `pricing/american.py`, `pricing/european.py`, `benchmarks/bench_pricing.py`, `docs/evidence/benchmarks.md`
-- **Approach:** Record the baseline first, on the post-U6 code. Then hoist the stock lattice out of the American tree loops, vectorize the timestep loops with numpy, and factorize the finite-difference tridiagonal matrix once instead of per timestep (KTD6). The American tree methods are the primary target — American inversion through a tree is the stated bottleneck, and U12's round-trip tests multiply every one of those calls by the solver's iteration count.
+- **Approach:** Record the baseline first, on the post-U6 code. Then hoist the stock lattice out of the American tree loops and vectorize the timestep loops with numpy. The American tree methods are the primary target — American inversion through a tree is the stated bottleneck, and U12's round-trip tests multiply every one of those calls by the solver's iteration count.
+
+  **The finite-difference factorization (KTD6) is already done**, taken early during U4 because U5's convergence grid would otherwise have inherited a solver that re-factorized a constant 400x400 matrix on every one of 200-756 timesteps. Numerically identical — `np.linalg.solve` and `lu_factor`/`lu_solve` are the same LAPACK pair — and it cut the suite from 5m20s to 1m40s. The trees are now the slow part, which is what this unit is for. U13's benchmark baseline must therefore be recorded against the already-factorized solver, and the ratio it reports must not claim the factorization's gain a second time.
 
   This sits inside Foundation rather than after inversion because the code being optimized already exists and U5's suite already protects it. Nothing downstream has been built against the slow shapes yet, and every test run for the remainder of the plan is faster for it.
 - **Test scenarios:**
   - U5's convergence suite still passes after each optimization, unchanged. The suite is what makes this refactor safe.
   - A vectorized tree and its pre-change implementation price identically to full tolerance.
-  - The finite-difference solvers price identically with the matrix factorized once rather than per timestep.
+  - The finite-difference solvers price identically with the matrix factorized once rather than per timestep. Already satisfied — the change landed in U4 and was verified to reproduce prices to every printed digit.
 - **Verification:** Benchmark output shows a stated ratio against the recorded baseline, committed to `docs/evidence/benchmarks.md` and surfaced by U7's README section.
 - **Note:** Which pricer U12's solver calls is not yet settled; KTD4's bracket reasoning implies the binomial tree. Optimize the binomial path first. Gains on the trinomial and Longstaff-Schwartz still pay for themselves through the convergence suite even if the inverter never calls them, but they are test-speed wins rather than production throughput until that question is answered.
 
@@ -656,6 +667,35 @@ Quality gates:
 - No test reaches the network. Provider behavior is tested against recorded fixtures, so CI does not depend on Yahoo being reachable or on the tracked symbols still trading.
 - R11's thresholds are measurable, not boolean: a snapshot of N quotes inverted within W minutes on the target host, and full-history re-inversion sustaining a stated quotes-per-minute rate. State the achieved ratio against the recorded baseline rather than asserting improvement.
 - Evidence artifacts are regenerated, never hand-edited. Two rules, because the artifacts differ in kind. Convergence, anchor, and benchmark artifacts are deterministic: a generator that does not reproduce the committed file byte-for-byte is a failure. Data artifacts derive from a store that is not in the repository and changes on every capture, so they instead record the generating query and the source snapshot timestamp inside the artifact.
+
+---
+
+## Amendments
+
+Changes to this plan made after execution began, with what forced each. Recorded
+because a plan that quietly rewrites its own requirements to match what was built
+proves nothing.
+
+**2026-08-05, during U5 and U6.**
+
+- **R3 split into R3a-R3e.** The original named three defects. The suite found a
+  fourth, and demoted one of the three. Severity order as measured, which is not
+  the order the plan assumed: Longstaff-Schwartz crash, Monte Carlo drift, vega
+  identity, bump machinery, American early-exercise test.
+- **R3e reclassified** from pricing defect to robustness fix, on the evidence in
+  `docs/evidence/pre-fix-failures.md`. The plan asserted a test would catch it;
+  no test can.
+- **R4 qualified** with the tolerance floor finding.
+- **R31 marked partially satisfied.** The anchor values reproduce independently
+  but the citation is unverified. This is the one open requirement in Stage 1
+  and it needs a copy of Hull, not more code.
+- **U13's finite-difference factorization moved into U4.** Recorded so the
+  benchmark ratio does not double-count it.
+- **Execution profile note added.** Test-first was the reason both findings
+  surfaced at all; worth keeping visible when deciding whether to use it again.
+
+Not amended, and deliberately: the Verification Contract, the Definition of Done,
+and every requirement outside Stage 1. Nothing found so far bears on them.
 
 ---
 
