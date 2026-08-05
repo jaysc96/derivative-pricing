@@ -9,9 +9,10 @@ Two contract classes, split by exercise style::
 
 Each class is constructed with the contract and the name of the method that
 should price it. The method must be one this exercise style supports —
-``EUROPEAN_METHODS`` and ``AMERICAN_METHODS`` enumerate them. Tree, Monte Carlo,
-and finite-difference methods need their discretization set before pricing via
-``setTreeSteps``, ``setSeedVariables``, or ``setFDVariables`` respectively.
+``EUROPEAN_METHODS`` and ``AMERICAN_METHODS`` enumerate them. Trees and Monte
+Carlo need their discretization set before pricing, via ``setTreeSteps`` and
+``setSeedVariables``; finite differences derive their grid from the contract and
+price without configuration, though ``setFDResolution`` will refine it.
 
 The methods and where they live:
 
@@ -37,6 +38,7 @@ names the ones it holds, and U6 fixes them.
 """
 
 from .american import American_Option
+from .contracts import PriceResult
 from .european import European_Option
 from .greeks import N, Option, n
 
@@ -51,5 +53,6 @@ __all__ = [
     "European_Option",
     "N",
     "Option",
+    "PriceResult",
     "n",
 ]

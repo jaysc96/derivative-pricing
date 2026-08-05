@@ -15,6 +15,11 @@ crashes rather than numbers — deep out-of-the-money LSMC raises
 ``LinAlgError`` — and those are asserted just as strictly. U6 changes them
 deliberately; until then, preserving the crash is what proves nothing moved.
 
+U4 superseded the finite-difference entries on purpose: those results were
+vectors across a caller-supplied grid, and there is no longer such a grid to
+supply. ``tests/test_contract.py`` carries FD's proof forward by checking the
+new price at spot against what the old grid produced at the same point.
+
 Regenerate the baseline only when a change to the numbers is intended, and say
 so in the commit that does it.
 """
@@ -26,60 +31,37 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from cases import CASES, STYLES, option
 
-from pricing import (
-    AMERICAN_METHODS,
-    EUROPEAN_METHODS,
-    American_Option,
-    European_Option,
-)
+from pricing import AMERICAN_METHODS, EUROPEAN_METHODS
 
 BASELINE_PATH = Path(__file__).parent / "baseline_prices.json"
 BASELINE = json.loads(BASELINE_PATH.read_text())
 META = BASELINE["_meta"]
 
-# Spread across moneyness, maturity, exercise style, and dividend, so a move
-# that only happens to preserve the at-the-money case is caught. Must stay in
-# step with the labels recorded in the baseline.
-CASES = {
-    #  label:            (option_type,  S0,    K,     r,    sig,  y,    T)
-    "atm_call_1y": ("call", 100.0, 100.0, 0.05, 0.20, 0.02, 1.0),
-    "atm_put_1y": ("put", 100.0, 100.0, 0.05, 0.20, 0.02, 1.0),
-    "itm_call_1y": ("call", 120.0, 100.0, 0.05, 0.20, 0.02, 1.0),
-    "otm_call_1y": ("call", 80.0, 100.0, 0.05, 0.20, 0.02, 1.0),
-    "itm_put_6m": ("put", 80.0, 100.0, 0.03, 0.35, 0.00, 0.5),
-    "otm_put_2y": ("put", 130.0, 100.0, 0.05, 0.25, 0.04, 2.0),
-    "high_vol_call_3m": ("call", 100.0, 100.0, 0.01, 0.60, 0.00, 0.25),
-    "low_vol_call_1y": ("call", 100.0, 95.0, 0.05, 0.10, 0.02, 1.0),
-}
+METHODS = {"european": EUROPEAN_METHODS, "american": AMERICAN_METHODS}
 
-STYLES = {
-    "european": (European_Option, EUROPEAN_METHODS),
-    "american": (American_Option, AMERICAN_METHODS),
-}
+# The library stopped rounding in U4 — rounding is a display decision, and the
+# convergence suite and implied-volatility inversion both need the precision
+# the old three-decimal round threw away. The recorded values still carry three
+# decimals, so half of the last place is exactly the right tolerance: the
+# methods this file covers are otherwise untouched, and any real drift in them
+# would be orders of magnitude larger.
+TOL = 5e-4
 
-# The move is a copy, so agreement should be exact. The tolerance guards against
-# last-bit differences between platforms, not against real drift — the recorded
-# values carry three decimals, so anything meaningful is orders of magnitude
-# larger than this.
-TOL = 1e-9
-
-BASELINE_KEYS = sorted(key for key in BASELINE if key != "_meta")
+ALL_KEYS = sorted(key for key in BASELINE if key != "_meta")
+LIVE_KEYS = [key for key in ALL_KEYS if not key.endswith(".FD")]
+SUPERSEDED_KEYS = [key for key in ALL_KEYS if key.endswith(".FD")]
 
 
 def build(key):
     """Construct and discretize the option a baseline key names."""
     style, label, method = key.split(".")
-    cls, _ = STYLES[style]
-    option_type, S0, K, r, sig, y, T = CASES[label]
-
-    opt = cls(option_type, S0, K, r, sig, y, T, method)
+    opt = option(style, label, method)
     if method in ("BT", "TT"):
         opt.setTreeSteps(META["tree_steps"])
     elif method in ("MC", "LSMC"):
         opt.setSeedVariables(META["seed"], META["mc_paths"], META["mc_dt"])
-    elif method == "FD":
-        opt.setFDVariables(*META["fd_grid"])
     return opt
 
 
@@ -108,12 +90,11 @@ def test_no_path_manipulation_in_the_package():
 
 @pytest.mark.parametrize(
     "style,method",
-    [(style, method) for style, (_, methods) in STYLES.items() for method in methods],
+    [(style, method) for style, methods in METHODS.items() for method in methods],
 )
 def test_every_advertised_method_is_reachable(style, method):
     """Each method the public API names resolves and binds on construction."""
-    cls, _ = STYLES[style]
-    opt = cls("call", 100.0, 100.0, 0.05, 0.20, 0.02, 1.0, method)
+    opt = STYLES[style]("call", 100.0, 100.0, 0.05, 0.20, 0.02, 1.0, method)
     assert opt.method_name == method
     assert callable(opt.method)
 
@@ -129,7 +110,7 @@ def test_the_six_methods_are_covered_between_the_two_styles():
     }
 
 
-@pytest.mark.parametrize("key", BASELINE_KEYS)
+@pytest.mark.parametrize("key", LIVE_KEYS)
 def test_matches_pre_move_baseline(key):
     expected = BASELINE[key]
     opt = build(key)
@@ -142,26 +123,29 @@ def test_matches_pre_move_baseline(key):
     result = opt.priceOption()
 
     for name, want in expected.items():
-        got = result[name]
-        if isinstance(want, dict):
-            # FD returns a vector over its own grid; the baseline records the
-            # shape and three sampled nodes rather than 300 numbers per case.
-            assert got.shape == (want["shape"],), name
-            assert got[0] == pytest.approx(want["first"], abs=TOL), f"{name} first"
-            assert got[want["shape"] // 2] == pytest.approx(
-                want["mid"], abs=TOL
-            ), f"{name} mid"
-            assert got[-1] == pytest.approx(want["last"], abs=TOL), f"{name} last"
-        else:
-            assert float(got) == pytest.approx(want, abs=TOL), name
+        got = getattr(result, name)
+        assert got == pytest.approx(want, abs=TOL), name
 
 
 def test_baseline_covers_every_style_and_method():
     """Guard against a baseline that silently loses entries."""
     want = {
         f"{style}.{label}.{method}"
-        for style, (_, methods) in STYLES.items()
+        for style, methods in METHODS.items()
         for label in CASES
         for method in methods
     }
-    assert set(BASELINE_KEYS) == want
+    assert set(ALL_KEYS) == want
+
+
+def test_only_the_finite_difference_entries_are_superseded():
+    """Pin what U4 was allowed to change, so a later unit cannot widen it.
+
+    The finite-difference entries recorded a vector across a grid the caller
+    supplied. U4 removed that grid, so there is nothing left to compare against
+    and ``tests/test_contract.py`` takes over. Every other method is untouched
+    and stays under the assertion above.
+    """
+    assert len(SUPERSEDED_KEYS) == 16
+    assert all(key.endswith(".FD") for key in SUPERSEDED_KEYS)
+    assert len(LIVE_KEYS) == 56

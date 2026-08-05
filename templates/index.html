@@ -69,9 +69,6 @@
             const iterField = document.getElementById('iter_field');
             const seedField = document.getElementById('seed_field');
             const timestepField = document.getElementById('timestep_field');
-            const stockField = document.getElementById('stock_price_field');
-            const stockMinField = document.getElementById('fd_stock_min_field');
-            const stockMaxField = document.getElementById('fd_stock_max_field');
 
             // Show Tree inputs if the method is Binomial or Trinomial Tree
             if (method === 'BT' || method === 'TT') {
@@ -102,17 +99,9 @@
                 seedField.style.display = 'block';
                 iterField.style.display = 'block';
             }
-            
-            // Show Finite Difference inputs if the method is Finite Differencing
-            if (method === 'FD') {
-                stockField.style.display = 'none';
-                stockMinField.style.display = 'block';
-                stockMaxField.style.display = 'block';
-            } else {
-                stockMinField.style.display = 'none';
-                stockMaxField.style.display = 'none';
-                stockField.style.display = 'block';
-            }
+            // Finite differences derive their grid from the contract, so there
+            // are no grid bounds to ask for and the stock price is an input to
+            // every method alike.
         }
 
         function saveState() {
@@ -254,19 +243,6 @@
                     <div class="form-floating">
                         <input type="number" id="stock_price" name="stock_price" step="1" value="100" class="form-control" required>
                         <label for="stock_price" class="form-label">Stock Price (S):</label>
-                    </div>
-                </div>
-                
-                <div id="fd_stock_min_field" class="col-md-2 mb-3" style="display: none;">
-                    <div class="form-floating">
-                        <input type="number" id="stock_min_price" name="stock_min_price" step="1" value="90" class="form-control" required>
-                        <label for="stock_min_price" class="form-label">Minimum Stock Price:</label>
-                    </div>
-                </div>
-                <div id="fd_stock_max_field" class="col-md-2 mb-3" style="display: none;">
-                    <div class="form-floating">
-                        <input type="number" id="stock_max_price" name="stock_max_price" step="1" value="110" class="form-control" required>
-                        <label for="stock_max_price" class="form-label">Maximum Stock Price:</label>
                     </div>
                 </div>
 

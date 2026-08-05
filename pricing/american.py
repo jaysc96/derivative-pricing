@@ -4,8 +4,7 @@ Four methods: binomial and trinomial trees with an early-exercise test at each
 node, Longstaff-Schwartz least-squares Monte Carlo, and Crank-Nicolson finite
 differences.
 
-Faithful move from the former ``src/option.py``; behavior is unchanged. Two
-known defects live here and are preserved so the extraction stays provable
+Two known defects live here, preserved so that U3's extraction stayed provable
 against ``tests/baseline_prices.json``:
 
 * ``FD`` tests early exercise against the previous time slice
@@ -18,10 +17,17 @@ against ``tests/baseline_prices.json``:
 
 Both tree methods also rebuild the stock lattice inside the backward loop, which
 U13 hoists. U6 fixes the defects.
+
+``FD`` is the one method U4 changed: it builds its own grid from the contract
+and returns a scalar at spot rather than a vector across bounds the caller
+guessed. The early-exercise defect above is untouched by that change and still
+shows up as American puts pricing above their European counterparts for the
+wrong reason.
 """
 
 import numpy as np
 
+from .contracts import fd_grid, interpolate_at
 from .greeks import Option
 
 
@@ -110,25 +116,31 @@ class American_Option(Option):
         V0 = (Index * EV * np.exp(-self.r * np.arange(1, m + 1) * dt)).sum(axis=1)
         return self.K * V0.mean()
 
-    def FD(self, return_S = False):
-        M = int(self.T / self.dt)
-        dS = 1
+    def FD(self):
+        """Price at the contract's spot, interpolated off the internal grid."""
+        CV, S, _ = self._fd_solve()
+        return interpolate_at(S, CV, self.S0)
+
+    def _fd_solve(self):
+        """Crank-Nicolson backward through time. Returns the grid solution."""
+        M = max(2, int(round(self.T / self.fd_dt)))
+        dt = self.T / M   # exactly M steps spanning T, whatever fd_dt divides into
         alpha = 0.5
 
-        N_grid = int(np.round((self.S_max - self.S_min) / dS) + 1)
-        S = np.linspace(self.S_max, self.S_min, N_grid)
+        S, dS = fd_grid(self.S0, self.K, self.sig, self.T, self.fd_nodes)
+        N_grid = len(S)
         j = S / dS
 
         CV = np.zeros((N_grid, M))
         CV[:, -1] = np.maximum(self.phi * (S - self.K), 0)
 
-        a1 = (self.sig**2 * j**2 + (self.r - self.y) * j) * (1 - alpha) * self.dt / 2
-        a2 = - 1 - (self.sig**2 * j**2 + self.r) * (1 - alpha) * self.dt
-        a3 = (self.sig**2 * j**2 - (self.r - self.y) * j) * (1 - alpha) * self.dt / 2
+        a1 = (self.sig**2 * j**2 + (self.r - self.y) * j) * (1 - alpha) * dt / 2
+        a2 = - 1 - (self.sig**2 * j**2 + self.r) * (1 - alpha) * dt
+        a3 = (self.sig**2 * j**2 - (self.r - self.y) * j) * (1 - alpha) * dt / 2
 
-        b1 = - ((self.r - self.y) * j + self.sig**2 * j**2) * alpha * self.dt / 2
-        b2 = (self.sig**2 * j**2 + self.r) * alpha * self.dt - 1
-        b3 = ((self.r - self.y) * j - self.sig**2 * j**2) * alpha * self.dt / 2
+        b1 = - ((self.r - self.y) * j + self.sig**2 * j**2) * alpha * dt / 2
+        b2 = (self.sig**2 * j**2 + self.r) * alpha * dt - 1
+        b3 = ((self.r - self.y) * j - self.sig**2 * j**2) * alpha * dt / 2
 
         RA = np.zeros((N_grid, N_grid))
         LA = np.zeros((N_grid, N_grid))
@@ -157,6 +169,4 @@ class American_Option(Option):
             CV[:, i] = np.linalg.solve(LA, np.dot(RA, CV[:, i + 1]) + B)
             CV[:, i] = np.maximum(CV[:, i], CV[:, i + 1])
 
-        if return_S:
-            return CV[:, 0], S
-        return CV[:, 0]
+        return CV[:, 0], S, dS

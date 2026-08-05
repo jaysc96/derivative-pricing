@@ -4,14 +4,23 @@ Holds the contract constructor that both exercise styles inherit, the Gaussian
 helpers the closed-form Greeks need, and the bump-and-reprice machinery in
 ``priceOption``.
 
-This module is a faithful move of the base class from the former
-``src/option.py``. Known defects are preserved deliberately so that the
-extraction can be proven behavior-preserving against ``tests/baseline_prices.json``;
-U6 rebuilds the Greek estimation here.
+Known defects are preserved deliberately so that U3's extraction stayed
+provable against ``tests/baseline_prices.json``. The bump machinery here is one
+of them: the differences are one-sided, the time bump is 0.05 years regardless
+of maturity, and the interest-rate bump reuses the volatility epsilon. U6
+rebuilds it on central differences with a bump scaled to each input.
 """
 
 import numpy as np
 import scipy.stats
+
+from .contracts import (
+    DEFAULT_FD_DT,
+    DEFAULT_FD_NODES,
+    PriceResult,
+    interpolate_at,
+    spatial_greeks,
+)
 
 N = scipy.stats.norm.cdf
 
@@ -49,6 +58,12 @@ class Option:
         self.method_name = method
         self.method = getattr(self, method)
 
+        # Finite-difference resolution. Extent is derived from the contract, so
+        # unlike the other discretizations these have usable defaults and the
+        # caller can price without setting anything.
+        self.fd_nodes = DEFAULT_FD_NODES
+        self.fd_dt = DEFAULT_FD_DT
+
     def setSeedVariables(self, seed, n, dt=None):
         self.n = n
         self.dt = dt
@@ -57,39 +72,39 @@ class Option:
     def setTreeSteps(self, n):
         self.n = n
 
-    def setFDVariables(self, S_min, S_max, dt):
-        self.S_min = S_min
-        self.S_max = S_max
-        self.dt = dt
+    def setFDResolution(self, nodes=None, dt=None):
+        """Refine the finite-difference discretization.
+
+        Resolution only. The grid's extent comes from the contract — see
+        ``contracts.fd_grid`` for why the caller no longer chooses it.
+        """
+        if nodes is not None:
+            self.fd_nodes = nodes
+        if dt is not None:
+            self.fd_dt = dt
 
     def priceOption(self, eps=1):
+        """Price at the contract's spot, with Greeks. Uniform across methods."""
         if self.method_name == 'BSM':
             return self.method()
 
         time_eps = 0.05
         sig_eps = eps / 200
-        S = []
 
-        if self.method_name != 'FD':
+        if self.method_name == 'FD':
+            grid, S, dS = self._fd_solve()
+            V = interpolate_at(S, grid, self.S0)
+            delta, gamma = spatial_greeks(S, grid, dS, self.S0)
+        else:
             V = self.method()
             self.S0 += eps
             Vp = self.method()
             self.S0 -= 2 * eps
             Vm = self.method()
             self.S0 += eps
-        else:
-            V, S = self.method(return_S=True)
-            self.S_min += eps
-            self.S_max += eps
-            Vp = self.method()
-            self.S_min -= 2 * eps
-            self.S_max -= 2 * eps
-            Vm = self.method()
-            self.S_max += eps
-            self.S_min += eps
 
-        delta = (Vp - Vm) / 2 / eps
-        gamma = (Vp + Vm - 2 * V) / (eps**2)
+            delta = (Vp - Vm) / 2 / eps
+            gamma = (Vp + Vm - 2 * V) / (eps**2)
 
         self.T += time_eps
         VTp = self.method()
@@ -106,22 +121,11 @@ class Option:
         self.r -= sig_eps
         rho = (Vrp - V) / sig_eps
 
-        if len(S) > 0:
-            return {
-                "stock_price": S,
-                "price": np.round(V, 3),
-                "delta": np.round(delta, 3),
-                "gamma": np.round(gamma, 3),
-                "theta": np.round(theta, 3),
-                "vega": np.round(vega, 3),
-                "rho": np.round(rho, 3),
-            }
-
-        return {
-            "price": np.round(V, 3),
-            "delta": np.round(delta, 3),
-            "gamma": np.round(gamma, 3),
-            "theta": np.round(theta, 3),
-            "vega": np.round(vega, 3),
-            "rho": np.round(rho, 3),
-        }
+        return PriceResult(
+            price=float(V),
+            delta=float(delta),
+            gamma=float(gamma),
+            theta=float(theta),
+            vega=float(vega),
+            rho=float(rho),
+        )

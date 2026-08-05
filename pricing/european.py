@@ -3,8 +3,7 @@
 Five methods: closed-form Black-Scholes-Merton, binomial and trinomial trees,
 Monte Carlo with antithetic variates, and Crank-Nicolson finite differences.
 
-Faithful move from the former ``src/option.py``; behavior is unchanged. Two
-known defects live here and are preserved so the extraction stays provable
+Two known defects live here, preserved so that U3's extraction stayed provable
 against ``tests/baseline_prices.json``:
 
 * ``BSM`` computes vega as ``S * exp(-rT) * n(d2)``, mixing the two equivalent
@@ -14,10 +13,16 @@ against ``tests/baseline_prices.json``:
   non-dividend-paying asset regardless of the ``y`` it was given.
 
 U6 fixes both.
+
+``FD`` is the one method U4 changed: it builds its own grid from the contract
+and returns a scalar at spot rather than a vector across bounds the caller
+guessed. ``tests/test_contract.py`` holds it to what the old grid produced at
+the same point.
 """
 
 import numpy as np
 
+from .contracts import PriceResult, fd_grid, interpolate_at
 from .greeks import N, Option, n
 
 
@@ -34,7 +39,7 @@ class European_Option(Option):
         deltaK = - self.phi * np.exp(- self.r * self.T) * N(self.phi * zm)
         theta = self.r * self.K * deltaK + self.y * self.S0 * delta - self.sig**2 * self.S0**2 * gamma / 2
         vega = self.S0 * np.sqrt(self.T) * np.exp(- self.r * self.T) * n(zm)
-        return {"price": round(V, 3), "delta": round(delta, 3), "gamma": round(gamma, 3), "theta": round(theta, 3), "vega": round(vega, 3), "rho": round(rho, 3)}
+        return PriceResult(price=V, delta=delta, gamma=gamma, theta=theta, vega=vega, rho=rho)
 
     def MC(self):
         m = int(self.T / self.dt)
@@ -99,25 +104,31 @@ class European_Option(Option):
             V = Vt
         return V[0]
 
-    def FD(self, return_S = False):
-        M = int(self.T / self.dt)
-        dS = 1
+    def FD(self):
+        """Price at the contract's spot, interpolated off the internal grid."""
+        V, S, _ = self._fd_solve()
+        return interpolate_at(S, V, self.S0)
+
+    def _fd_solve(self):
+        """Crank-Nicolson backward through time. Returns the grid solution."""
+        M = max(2, int(round(self.T / self.fd_dt)))
+        dt = self.T / M   # exactly M steps spanning T, whatever fd_dt divides into
         alpha = 0.5
 
-        N_grid = int(np.round((self.S_max - self.S_min) / dS) + 1)
-        S = np.linspace(self.S_max, self.S_min, N_grid)
+        S, dS = fd_grid(self.S0, self.K, self.sig, self.T, self.fd_nodes)
+        N_grid = len(S)
         j = S / dS
 
         V = np.zeros((N_grid, M))
         V[:, -1] = np.maximum(self.phi * (S - self.K), 0)
 
-        a1 = (self.sig**2 * j**2 + (self.r - self.y) * j) * (1 - alpha) * self.dt / 2
-        a2 = - 1 - (self.sig**2 * j**2 + self.r) * (1 - alpha) * self.dt
-        a3 = (self.sig**2 * j**2 - (self.r - self.y) * j) * (1 - alpha) * self.dt / 2
+        a1 = (self.sig**2 * j**2 + (self.r - self.y) * j) * (1 - alpha) * dt / 2
+        a2 = - 1 - (self.sig**2 * j**2 + self.r) * (1 - alpha) * dt
+        a3 = (self.sig**2 * j**2 - (self.r - self.y) * j) * (1 - alpha) * dt / 2
 
-        b1 = - ((self.r - self.y) * j + self.sig**2 * j**2) * alpha * self.dt / 2
-        b2 = (self.sig**2 * j**2 + self.r) * alpha * self.dt - 1
-        b3 = ((self.r - self.y) * j - self.sig**2 * j**2) * alpha * self.dt / 2
+        b1 = - ((self.r - self.y) * j + self.sig**2 * j**2) * alpha * dt / 2
+        b2 = (self.sig**2 * j**2 + self.r) * alpha * dt - 1
+        b3 = ((self.r - self.y) * j - self.sig**2 * j**2) * alpha * dt / 2
 
         RA = np.zeros((N_grid, N_grid))
         LA = np.zeros((N_grid, N_grid))
@@ -145,6 +156,4 @@ class European_Option(Option):
         for i in range(M-2,-1,-1):
             V[:, i] = np.linalg.solve(LA, np.dot(RA, V[:, i + 1]) + B)
 
-        if return_S:
-            return V[:, 0], S
-        return V[:, 0]
+        return V[:, 0], S, dS

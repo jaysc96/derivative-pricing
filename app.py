@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request
-import numpy as np
 import pandas as pd
 from pricing import European_Option, American_Option
 
@@ -9,7 +8,6 @@ app = Flask(__name__)
 def calculate_price():
     # Adding tooltips for each Greek
     tooltips = {
-        'Stock Price': 'Initial stock price',
         'Option Value': 'Option value based on the chosen model',
         'Delta 𝚫': 'Rate of change of option value with respect to the underlying asset price',
         'Gamma 𝚪': 'Rate of change of delta with respect to the underlying asset price',
@@ -47,43 +45,23 @@ def calculate_price():
             n = int(request.form['time_steps'])
             SO.setTreeSteps(n=n)
         elif method == 'FD':
-            S_min = float(request.form['stock_min_price'])
-            S_max = float(request.form['stock_max_price'])
+            # Resolution only. The grid's extent comes from the contract, so
+            # there is no longer a minimum or maximum stock price to supply.
             dt = float(request.form['timestep'])
-            SO.setFDVariables(S_min=S_min, S_max=S_max, dt=dt)
-
-            res = SO.priceOption()
-            res_data = {
-                'Stock Price': res['stock_price'], 
-                'Option Value': res['price'], 
-                'Delta - 𝚫': res['delta'], 
-                'Gamma - 𝚪': res['gamma'], 
-                'Theta - 𝛳': res['theta'], 
-                'Vega - 𝓋': res['vega'], 
-                'Rho - 𝛒': res['rho']
-            }
-            df = pd.DataFrame(res_data).sort_values(by='Stock Price')
-            res_table_html = df.to_html(
-                classes='table table-hover table-striped table-bordered',
-                index=False,
-                escape=False,
-                header=True
-            )
-
-            # Render the HTML table in the template
-            return render_template('index.html', res_table_html=res_table_html, tooltips=tooltips)
+            SO.setFDResolution(dt=dt)
 
         res = SO.priceOption()
-        # return render_template('index.html',res=res)
 
-        # Create a pandas DataFrame for the results, using the metrics as columns
+        # Every method returns the same shape, so finite differences no longer
+        # need a branch of their own. Rounding happens here: the library keeps
+        # full precision and the display layer decides what to show.
         res_data = {
-            'Option Value': [res['price']],
-            'Delta - 𝚫': [res['delta']],
-            'Gamma - 𝚪': [res['gamma']],
-            'Theta - 𝛳': [res['theta']],
-            'Vega - 𝓋': [res['vega']],
-            'Rho - 𝛒': [res['rho']],
+            'Option Value': [round(res.price, 3)],
+            'Delta - 𝚫': [round(res.delta, 3)],
+            'Gamma - 𝚪': [round(res.gamma, 3)],
+            'Theta - 𝛳': [round(res.theta, 3)],
+            'Vega - 𝓋': [round(res.vega, 3)],
+            'Rho - 𝛒': [round(res.rho, 3)],
         }
         df = pd.DataFrame(res_data)
 
