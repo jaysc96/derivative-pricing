@@ -30,7 +30,9 @@ dev = [
     "pytest>=8.0",
 ]
 
-# Only the library ships. app.py and templates/ are the deployment surface, not
-# part of the importable package, so discovery is pinned rather than automatic.
+# Only the libraries ship. app.py and templates/ are the deployment surface,
+# not part of the importable package, so discovery is pinned rather than
+# automatic. `marketdata` imports yfinance lazily, so it installs and tests
+# without the `data` extra present.
 [tool.setuptools]
-packages = ["pricing"]
+packages = ["pricing", "marketdata"]

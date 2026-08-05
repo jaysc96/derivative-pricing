@@ -7,3 +7,10 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+
+# Credentials are read from the environment at runtime (R28).
+.env
+
+# Captured market data lives outside the repo; only derived evidence is committed.
+data/
+*.db
