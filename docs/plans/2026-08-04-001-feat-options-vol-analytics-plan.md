@@ -414,7 +414,7 @@ U-IDs are stable and never renumbered, so execution order and numeric order dive
   - Both anchored parameter sets match their published values.
 - **Verification:** The suite runs and fails on the named defects plus the Greek tolerances. A green suite at this point means the tests are too loose. Achieved: 152 failures, partitioning cleanly by cause — 80 Monte Carlo drift, 48 Longstaff-Schwartz crash, 16 vega, 7 rho, 1 theta, 0 structural.
 - **Note:** U5 and U6 land on one branch. U3's CI runs pytest on every push, so pushing U5's deliberately-failing suite on its own would turn the gate red for a reason that is not a regression. Verify the failing state locally, then fix on the same branch and push once.
-- **Deliverable:** Capture the pre-fix pytest output to `docs/evidence/pre-fix-failures.md` and commit it. Landing U5 and U6 together means CI never observes the red state, so without this artifact the repository holds no evidence the suite actually caught the three defects — a reviewer would see only a green suite arriving beside its own fixes, which is the asserted-rather-than-proven outcome the execution profile exists to avoid. This is the deliverable that makes the plan's central claim checkable.
+- **Deliverable:** Capture the pre-fix pytest output to `docs/evidence/pre-fix-failures.md` and commit it. Landing U5 and U6 together means CI never observes the red state, so without this artifact the repository holds no evidence the suite actually caught the defects — a reviewer would see only a green suite arriving beside its own fixes, which is the asserted-rather-than-proven outcome the execution profile exists to avoid. This is the deliverable that makes the plan's central claim checkable.
 
 ### U6. Defect fixes
 
