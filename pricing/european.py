@@ -21,6 +21,7 @@ the same point.
 """
 
 import numpy as np
+from scipy.linalg import lu_factor, lu_solve
 
 from .contracts import MIN_FD_STEPS, PriceResult, fd_grid, interpolate_at
 from .greeks import N, Option, n
@@ -155,7 +156,12 @@ class European_Option(Option):
         else:
             B[-1] = S[-2] - S[-1]
 
+        # LA does not change across the time loop, so factorize once and reuse
+        # it. Same LAPACK path as np.linalg.solve (getrf then getrs), but the
+        # O(n^3) factorization happens once instead of M times.
+        lu = lu_factor(LA)
+
         for i in range(M-2,-1,-1):
-            V[:, i] = np.linalg.solve(LA, np.dot(RA, V[:, i + 1]) + B)
+            V[:, i] = lu_solve(lu, np.dot(RA, V[:, i + 1]) + B)
 
         return V[:, 0], S, dS
