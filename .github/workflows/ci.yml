@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install from the manifest rather than a requirements file so that a
+      # missing or wrong dependency declaration fails here rather than in
+      # production. The tests import `pricing` by name from an installed
+      # distribution, so a package that only works from the repo root fails too.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[app,dev]"
+
+      - name: Test
+        run: pytest -q

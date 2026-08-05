@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import numpy as np
 import pandas as pd
-from src.option import European_Option, American_Option
+from pricing import European_Option, American_Option
 
 app = Flask(__name__)
 

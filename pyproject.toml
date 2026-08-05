@@ -30,8 +30,7 @@ dev = [
     "pytest>=8.0",
 ]
 
-# Package discovery is intentionally empty here. The pricing math currently
-# lives in src/option.py, which is not an importable package — U3 extracts it
-# into pricing/ and replaces this section with real package configuration.
+# Only the library ships. app.py and templates/ are the deployment surface, not
+# part of the importable package, so discovery is pinned rather than automatic.
 [tool.setuptools]
-packages = []
+packages = ["pricing"]
