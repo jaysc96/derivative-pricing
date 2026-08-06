@@ -302,6 +302,34 @@ def test_coverage_counts_two_sided_quotes(store):
     assert coverage["symbols"] == 1
 
 
+def test_raw_coverage_matches_the_global_totals(store):
+    """Same counting rule as ``coverage()`` — one definition of two-sided, not two."""
+    store.write_snapshot(
+        snapshot(
+            quote("C00600000", bid=12.5, ask=12.9),
+            quote("C00900000", bid=0.0, ask=0.05, strike=900.0),
+        )
+    )
+    assert store.raw_coverage() == {"quotes": 2, "two_sided": 1}
+
+
+def test_raw_coverage_narrows_to_one_chain(store):
+    other_expiry = EXPIRY + timedelta(days=30)
+    store.write_snapshot(snapshot(quote(bid=12.5, ask=12.9)))
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="yfinance", symbol="SPY", expiry=other_expiry, captured_at=T0,
+            as_of=T0.date(), origin="live", underlying_price=604.0,
+            quotes=(quote("C00600000C2", bid=None, ask=5.0),),
+        )
+    )
+
+    narrowed = store.raw_coverage(symbol="SPY", expiry=EXPIRY)
+    everything = store.raw_coverage()
+    assert narrowed == {"quotes": 1, "two_sided": 1}
+    assert everything == {"quotes": 2, "two_sided": 1}
+
+
 # --------------------------------------------------------------------------
 # The capture record
 # --------------------------------------------------------------------------

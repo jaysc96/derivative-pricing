@@ -1,25 +1,27 @@
 """Regenerate the committed evidence artifacts.
 
-    python scripts/generate_evidence.py           # write both artifacts
+    python scripts/generate_evidence.py           # write all three artifacts
     python scripts/generate_evidence.py --check   # fail if convergence.md would change
 
-Two artifacts, two different reproducibility rules.
+Three artifacts, two different reproducibility rules.
 
 `docs/evidence/convergence.md` is pure function of the code: the stochastic
 methods are seeded and every value is rounded before being written, so a clean
 checkout reproduces it byte for byte. `--check` is what makes committing it
 safe, and is the only artifact `--check` covers.
 
-`docs/evidence/surface.md` is not that kind of artifact — it reads the
-accumulated market-data store, which is not in the repository and changes on
-every capture (KTD9's derived layer, U12). The byte-for-byte rule cannot apply
-to a table that is expected to differ from one regeneration to the next; its
-rule instead is the one U11's note states: regenerated, never hand-edited,
-with the generating query and the source snapshot's own timestamp recorded
-inside the artifact, so a reader can tell what moment it describes without
-trusting the commit date. `--check` does not touch it — checking a store-
-derived table for staleness would fail immediately after any real capture,
-which is not staleness, it is the table doing its job.
+`docs/evidence/coverage.md` and `docs/evidence/surface.md` are not that kind
+of artifact — both read the accumulated market-data store, which is not in
+the repository and changes on every capture. Coverage is available from raw
+capture alone (U11); the surface needs inversion and so arrives with U12b's
+derived layer. The byte-for-byte rule cannot apply to a table that is
+expected to differ from one regeneration to the next; their rule instead is
+the one R35's note states: regenerated, never hand-edited, with the
+generating query and the source snapshot's own timestamp recorded inside the
+artifact, so a reader can tell what moment it describes without trusting the
+commit date. `--check` does not touch either — checking a store-derived table
+for staleness would fail immediately after any real capture, which is not
+staleness, it is the table doing its job.
 
 Deliberately excluded: timings. They are the one thing that cannot reproduce,
 and they live in docs/evidence/benchmarks.md with their own hardware caveat.
@@ -41,9 +43,11 @@ from reference_values import (  # noqa: E402
 )
 
 from marketdata import Store  # noqa: E402
+from marketdata.capture import fallback_trigger_state  # noqa: E402
 
 OUTPUT = Path(__file__).parent.parent / "docs" / "evidence" / "convergence.md"
 SURFACE_OUTPUT = Path(__file__).parent.parent / "docs" / "evidence" / "surface.md"
+COVERAGE_OUTPUT = Path(__file__).parent.parent / "docs" / "evidence" / "coverage.md"
 STORE_PATH = Path(__file__).parent.parent / "data" / "quotes.db"
 
 TREE_STEPS = 200
@@ -219,6 +223,15 @@ def _status_row(counts: dict) -> str:
 MAX_STRIKE_ROWS = 24
 
 
+def _stride_sample(strikes: list[float]) -> tuple[list[float], int]:
+    """Evenly-strided subset of ``strikes``, always keeping the last one."""
+    stride = max(1, len(strikes) // MAX_STRIKE_ROWS)
+    sampled = strikes[::stride]
+    if sampled[-1] != strikes[-1]:
+        sampled.append(strikes[-1])
+    return sampled, stride
+
+
 def _strike_table(store: Store, symbol: str, expiry: date, moment: datetime) -> str:
     rows = store.derived_as_of(symbol, expiry, moment, ENGINE_VERSION)
     if not rows:
@@ -227,10 +240,7 @@ def _strike_table(store: Store, symbol: str, expiry: date, moment: datetime) -> 
     for row in rows:
         by_strike.setdefault(row["strike"], {})[row["option_type"]] = row["implied_vol"]
     strikes = sorted(by_strike)
-    stride = max(1, len(strikes) // MAX_STRIKE_ROWS)
-    sampled = strikes[::stride]
-    if sampled[-1] != strikes[-1]:
-        sampled.append(strikes[-1])
+    sampled, stride = _stride_sample(strikes)
 
     lines = ["| Strike | Call IV | Put IV |", "|---|---|---|"]
     for strike in sampled:
@@ -240,6 +250,37 @@ def _strike_table(store: Store, symbol: str, expiry: date, moment: datetime) -> 
         lines.append(f"| {strike:.1f} | {call} | {put} |")
     note = (
         f"\n\n{len(strikes)} solved strikes in this chain; every {stride} shown."
+        if stride > 1 else ""
+    )
+    return "\n".join(lines) + note
+
+
+def _two_sided_strike_table(store: Store, symbol: str, expiry: date, moment: datetime) -> str:
+    """Per-strike bid/ask presence for one chain — the raw layer's own shape.
+
+    Unlike ``_strike_table``, this reads ``chain_as_of`` rather than the
+    derived table: coverage is a property of what was quoted, not of what
+    solved, so a strike belongs here whether or not U12b's solver ever
+    accepted it.
+    """
+    rows = store.chain_as_of(symbol, expiry, moment)
+    if not rows:
+        return "*No quote captured for this chain yet.*"
+    by_strike: dict[float, dict[str, bool]] = {}
+    for row in rows:
+        two_sided = bool(row["bid"] and row["bid"] > 0 and row["ask"] and row["ask"] > 0)
+        by_strike.setdefault(row["strike"], {})[row["option_type"]] = two_sided
+    strikes = sorted(by_strike)
+    sampled, stride = _stride_sample(strikes)
+
+    lines = ["| Strike | Call two-sided | Put two-sided |", "|---|---|---|"]
+    for strike in sampled:
+        sides = by_strike[strike]
+        call = "yes" if sides.get("call") else ("no" if "call" in sides else "-")
+        put = "yes" if sides.get("put") else ("no" if "put" in sides else "-")
+        lines.append(f"| {strike:.1f} | {call} | {put} |")
+    note = (
+        f"\n\n{len(strikes)} strikes in this chain; every {stride} shown."
         if stride > 1 else ""
     )
     return "\n".join(lines) + note
@@ -325,6 +366,129 @@ solver's own conclusion about the quote, detailed in `pricing/implied.py`.
 {detail}"""
 
 
+def _run_record_table(store: Store, *, max_rows: int = 15) -> str:
+    runs = store.run_record()[:max_rows]
+    if not runs:
+        return "*No capture run recorded yet.*"
+    lines = [
+        "| Started | Symbol | Outcome | Reason | Contracts | Two-sided | Expiries |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for row in runs:
+        outcome = "productive" if row["productive"] else "FAILED"
+        reason = row["reason"] or "-"
+        lines.append(
+            f"| {row['started_at']} | {row['symbol']} | {outcome} | {reason} | "
+            f"{row['contracts']} | {row['two_sided']} | "
+            f"{row['expiries_captured']}/{row['expiries_requested']} |"
+        )
+    return "\n".join(lines)
+
+
+def render_coverage() -> str:
+    """Raw-capture legibility: history stats, strike/expiry coverage, run record (R35, U11).
+
+    Available from raw capture alone — unlike ``render_surface``, nothing here
+    needs inversion. Same reproducibility rule as ``render_surface``: reads a
+    store that changes on every capture, so this is regenerated and self-
+    documented rather than checked byte for byte. See the module docstring.
+    """
+    generated_at = datetime.now(timezone.utc).isoformat()
+    header = (
+        f"Generated by `scripts/generate_evidence.py` at {generated_at}. Not "
+        "checked for staleness — see the module docstring."
+    )
+
+    if not STORE_PATH.exists():
+        return f"""# Market data coverage
+
+{header}
+
+No archive exists yet at `{STORE_PATH.relative_to(STORE_PATH.parent.parent)}`.
+This section fills in once `scripts/capture.py` has run at least once.
+"""
+
+    store = Store(STORE_PATH)
+    coverage = store.coverage()
+    if not coverage["snapshots"]:
+        return f"""# Market data coverage
+
+{header}
+
+The archive exists but has captured nothing yet.
+"""
+
+    two_sided_share = coverage["two_sided"] / coverage["quotes"] if coverage["quotes"] else 0.0
+
+    chains = store.symbols_and_expiries()
+    chain_summary = [
+        "| Symbol | Expiry | Contracts | Two-sided | Share |",
+        "|---|---|---|---|---|",
+    ]
+    best = None
+    best_quotes = -1
+    for symbol, expiry in chains:
+        chain_coverage = store.raw_coverage(symbol=symbol, expiry=expiry)
+        share = (
+            chain_coverage["two_sided"] / chain_coverage["quotes"]
+            if chain_coverage["quotes"]
+            else 0.0
+        )
+        chain_summary.append(
+            f"| {symbol} | {expiry.isoformat()} | {chain_coverage['quotes']} | "
+            f"{chain_coverage['two_sided']} | {share:.1%} |"
+        )
+        if chain_coverage["quotes"] > best_quotes:
+            best, best_quotes = (symbol, expiry), chain_coverage["quotes"]
+
+    detail = ""
+    if best is not None and best_quotes > 0:
+        symbol, expiry = best
+        moment = datetime.fromisoformat(coverage["last_capture"])
+        detail = f"""
+## {symbol}, expiry {expiry.isoformat()}
+
+The chain with the most captured contracts, as an example of the shape rather
+than a claim about this symbol specifically.
+
+{_two_sided_strike_table(store, symbol, expiry, moment)}
+"""
+
+    trigger = fallback_trigger_state(store)
+
+    return f"""# Market data coverage
+
+{header}
+
+**Source snapshot timestamp: {coverage['last_capture'] or 'unknown'}.** This is
+the moment the underlying data describes, distinct from the generation time
+above.
+
+## Accumulated history
+
+- {coverage['snapshots']:,} snapshot(s) across {coverage['symbols']} symbol(s)
+- {coverage['quotes']:,} quote(s), {coverage['two_sided']:,} two-sided ({two_sided_share:.1%})
+- {coverage['contracts']:,} distinct contract(s)
+- First capture: {coverage['first_capture'] or '-'}
+- Last capture: {coverage['last_capture'] or '-'}
+
+## Quote coverage by chain
+
+{chr(10).join(chain_summary)}
+{detail}
+## Unproductive-run record
+
+The fallback trigger (`marketdata.capture.fallback_trigger_state`) watches this
+same record for the provider going unreliable.
+{trigger['runs_recorded']} run(s) recorded so far;
+{trigger['unproductive_in_window']} of {trigger['window_size']} unproductive in the trailing window;
+{trigger['consecutive_unproductive']} consecutive unproductive right now.
+Triggered: **{trigger['triggered']}**.
+
+{_run_record_table(store)}
+"""
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail if the artifact would change")
@@ -347,6 +511,9 @@ def main():
 
     SURFACE_OUTPUT.write_text(render_surface())
     print(f"wrote {SURFACE_OUTPUT}")
+
+    COVERAGE_OUTPUT.write_text(render_coverage())
+    print(f"wrote {COVERAGE_OUTPUT}")
     return 0
 
 

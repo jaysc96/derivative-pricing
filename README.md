@@ -108,8 +108,31 @@ American put is a **five-step** tree, and the converged value is 4.2842.
 Anchoring a 200-step method to the printed figure would have been wrong by 0.2
 while appearing to agree with the book.
 
+## Market data and implied volatility
+
+A scheduled job captures live option chains for a tracked set of six liquid
+names (SPY, QQQ, IWM, AAPL, MSFT, NVDA) into a point-in-time archive: every
+observed quote is stored as of the moment it was observed, never overwritten,
+so a chain read for a past moment reflects only what was actually knowable
+then. Implied volatility is inverted from the stored quotes by the same
+pricing library above — bracketed root-finding against the American tree,
+since every tracked symbol is American-style — and stamped with an explicit
+engine version (`pricing.ENGINE_VERSION`), so a solver change can rebuild the
+derived table wholesale from the raw archive instead of silently mixing old
+and new numbers.
+
+Both layers regenerate into the repository on every capture:
+[docs/evidence/coverage.md](docs/evidence/coverage.md) (accumulated history
+and quote coverage by strike and expiry, available as soon as raw capture
+runs) and [docs/evidence/surface.md](docs/evidence/surface.md) (the derived
+implied volatility surface). Unlike the convergence tables above, both read a
+store that changes on every capture rather than pure code, so neither is
+checked byte-for-byte — each records its own generation time and the
+timestamp of the snapshot it describes instead.
+
 ## Status
 
-The pricing library is complete and tested. Live market data capture, implied
-volatility inversion, and the volatility surface are in progress — see
+The pricing library is complete and tested. Live capture and implied
+volatility inversion are running and evidenced above. A backlog throughput
+gate, a JSON API, and a browser-facing analytics view are in progress — see
 [docs/plans/](docs/plans/).

@@ -602,3 +602,33 @@ class Store:
                     (symbol, expiry.isoformat(), cutoff, symbol, expiry.isoformat(), engine_version),
                 )
             )
+
+    def raw_coverage(self, *, symbol: str | None = None, expiry: date | None = None) -> dict:
+        """Quote and two-sided counts for the raw layer (R35's coverage artifact).
+
+        Global by default; ``symbol``/``expiry`` narrow to one chain, mirroring
+        ``derived_coverage``'s shape so the two artifacts read the same way.
+        Two-sidedness uses the same ``bid > 0 AND ask > 0`` test as
+        ``coverage()`` and ``derive.py``'s own mid-price — one definition of
+        "two-sided," not three that could quietly drift apart.
+        """
+        clauses = []
+        params: list = []
+        joined = ""
+        if symbol is not None or expiry is not None:
+            joined = "JOIN snapshots s ON s.id = q.snapshot_id"
+            if symbol is not None:
+                clauses.append("s.symbol = ?")
+                params.append(symbol)
+            if expiry is not None:
+                clauses.append("s.expiry = ?")
+                params.append(expiry.isoformat())
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with closing(self.connect()) as conn:
+            row = conn.execute(
+                f"""SELECT COUNT(*) AS quotes,
+                           SUM(CASE WHEN bid > 0 AND ask > 0 THEN 1 ELSE 0 END) AS two_sided
+                    FROM quotes q {joined} {where}""",
+                params,
+            ).fetchone()
+            return {"quotes": row["quotes"] or 0, "two_sided": row["two_sided"] or 0}
