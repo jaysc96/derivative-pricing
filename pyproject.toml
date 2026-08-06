@@ -30,9 +30,11 @@ dev = [
     "pytest>=8.0",
 ]
 
-# Only the libraries ship. app.py and templates/ are the deployment surface,
-# not part of the importable package, so discovery is pinned rather than
-# automatic. `marketdata` imports yfinance lazily, so it installs and tests
-# without the `data` extra present.
+# `api` ships alongside the libraries because tests/test_api.py imports it
+# directly, the same reason pricing and marketdata are here rather than
+# resolved off the working directory. app.py and templates/ stay out: nothing
+# imports them, so pinning them would ship deployment glue no test needs.
+# `marketdata` imports yfinance lazily, so it installs and tests without the
+# `data` extra present.
 [tool.setuptools]
-packages = ["pricing", "marketdata"]
+packages = ["pricing", "marketdata", "api"]

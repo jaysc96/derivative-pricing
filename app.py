@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request
 import pandas as pd
 from pricing import European_Option, American_Option
+from api import api_bp
 
 app = Flask(__name__)
+app.register_blueprint(api_bp)
 
 @app.route('/', methods=['GET','POST'])
 def calculate_price():
