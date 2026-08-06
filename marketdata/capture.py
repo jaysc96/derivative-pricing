@@ -42,6 +42,14 @@ DEFAULT_EXPIRIES_PER_SYMBOL = 4
 DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_BACKOFF_SECONDS = 2.0
 
+#: Trailing window for the daily-bar backfill, in calendar days. Comfortably
+#: more than analytics.realized's own 21-trading-day rolling window, so a
+#: fresh archive has enough history for a first realized-volatility figure
+#: within days rather than months. write_underlying upserts by (symbol,
+#: bar_date), so re-fetching the same window every run just refreshes it —
+#: there is no accumulation cost to fetching more than the strict minimum.
+UNDERLYING_BACKFILL_DAYS = 90
+
 #: Runs a window needs before the majority rule may fire. Without a floor,
 #: "more than half the window" is satisfied by the very first unproductive run
 #: on a fresh archive — one bad afternoon reading as a standing instruction to
@@ -176,6 +184,18 @@ def capture_symbol(
         lambda: adapter.dividend_yield(symbol),
         max_attempts=max_attempts, backoff=backoff, sleep=sleep,
     )
+
+    # Underlying daily bars, for analytics.realized (U17). A fetch failure
+    # here costs a day of realized-volatility history, never the chain
+    # itself — same degrade-gracefully treatment as rate and yield above.
+    bars, _ = _with_backoff(
+        lambda: adapter.underlying_history(
+            symbol, reference - timedelta(days=UNDERLYING_BACKFILL_DAYS), reference
+        ),
+        max_attempts=max_attempts, backoff=backoff, sleep=sleep,
+    )
+    if bars:
+        store.write_underlying(bars)
 
     wanted = expiries[:expiries_per_symbol]
     contracts = two_sided = captured_expiries = 0

@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from marketdata import ChainSnapshot, NotSupported, QuoteRecord, RateLimited, Store
+from marketdata import ChainSnapshot, NotSupported, QuoteRecord, RateLimited, Store, UnderlyingBar
 from marketdata.adapter import MalformedResponse, ProviderUnavailable
 from marketdata.capture import capture_symbol, fallback_trigger_state, run_capture
 
@@ -47,16 +47,28 @@ class FakeAdapter:
 
     def __init__(
         self, *, expiries=(NEAR,), chain_script=None, expiry_error=None,
-        rate_error=None, yield_error=None,
+        rate_error=None, yield_error=None, bars_error=None, bars=None,
     ):
         self._expiries = expiries
         self._expiry_error = expiry_error
         self._chain_script = list(chain_script or [])
         self._rate_error = rate_error
         self._yield_error = yield_error
+        self._bars_error = bars_error
+        self._bars = (
+            bars
+            if bars is not None
+            else (
+                UnderlyingBar(
+                    symbol="SPY", bar_date=NOW.date(), open=600.0, high=606.0,
+                    low=598.0, close=604.0, volume=71_000_000,
+                ),
+            )
+        )
         self.chain_calls = 0
         self.rate_calls = 0
         self.yield_calls = 0
+        self.bars_calls = 0
 
     def expiries(self, _symbol):
         if self._expiry_error:
@@ -83,6 +95,12 @@ class FakeAdapter:
         if self._yield_error:
             raise self._yield_error
         return 0.02
+
+    def underlying_history(self, symbol, start, end):
+        self.bars_calls += 1
+        if self._bars_error:
+            raise self._bars_error
+        return self._bars
 
 
 @pytest.fixture
@@ -219,6 +237,9 @@ def test_a_symbol_that_lost_three_of_four_expiries_is_marked_degraded(store):
         def dividend_yield(self, symbol, as_of=None):
             return 0.02
 
+        def underlying_history(self, symbol, start, end):
+            return ()
+
     outcome = capture_symbol(MostlyBlocked(), store, "SPY", sleep=no_sleep, today=NOW.date())
 
     assert outcome.productive, "one good expiry is still history worth keeping"
@@ -249,6 +270,9 @@ def test_the_expiry_shortfall_reaches_the_record(store):
 
         def dividend_yield(self, symbol, as_of=None):
             return 0.02
+
+        def underlying_history(self, symbol, start, end):
+            return ()
 
     run_capture(MostlyBlocked(), store, ("SPY",), sleep=no_sleep, now=NOW)
 
@@ -321,6 +345,31 @@ def test_a_failed_yield_fetch_does_not_cost_the_rate(store):
     assert row["dividend_yield"] is None
 
 
+def test_underlying_bars_are_fetched_once_per_symbol_not_per_expiry(store):
+    adapter = FakeAdapter(expiries=(NEAR, date(2027, 1, 15), date(2027, 2, 19), date(2027, 3, 19)))
+    capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert adapter.chain_calls == 4
+    assert adapter.bars_calls == 1
+
+
+def test_underlying_bars_reach_the_store(store):
+    capture_symbol(FakeAdapter(), store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    rows = store.underlying_bars("SPY")
+    assert len(rows) == 1
+    assert rows[0]["close"] == pytest.approx(604.0)
+
+
+def test_a_failed_bars_fetch_does_not_cost_the_chain(store):
+    """The chain is the irreplaceable half; a bars hiccup costs a day of realized-vol history, not it."""
+    adapter = FakeAdapter(bars_error=RateLimited("429"))
+    outcome = capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.productive
+    assert store.underlying_bars("SPY") == []
+
+
 # --------------------------------------------------------------------------
 # Partial failure keeps what worked
 # --------------------------------------------------------------------------
@@ -343,6 +392,9 @@ def test_one_blocked_symbol_does_not_discard_the_others(store):
 
         def dividend_yield(self, symbol, as_of=None):
             return 0.02
+
+        def underlying_history(self, symbol, start, end):
+            return ()
 
     result = run_capture(
         PerSymbol(), store, ("SPY", "QQQ", "IWM"), sleep=no_sleep, now=NOW
@@ -373,6 +425,9 @@ def test_every_symbol_outcome_reaches_the_record(store):
 
         def dividend_yield(self, symbol, as_of=None):
             return 0.02
+
+        def underlying_history(self, symbol, start, end):
+            return ()
 
     run_capture(PerSymbol(), store, ("SPY", "IWM"), sleep=no_sleep, now=NOW)
 

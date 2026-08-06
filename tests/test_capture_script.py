@@ -69,6 +69,9 @@ class FakeAdapter:
     def dividend_yield(self, symbol, as_of=None):
         return 0.02
 
+    def underlying_history(self, symbol, start, end):
+        return ()
+
 
 @pytest.fixture
 def store(tmp_path):
@@ -203,6 +206,9 @@ def test_a_degraded_symbol_says_so(store, capsys):
 
         def dividend_yield(self, symbol, as_of=None):
             return 0.02
+
+        def underlying_history(self, symbol, start, end):
+            return ()
 
     code = run(store, ["--symbols", "SPY"], adapter=Partial())
     output = capsys.readouterr().out

@@ -575,17 +575,21 @@ class Store:
         """Solved implied volatilities as of ``moment`` — the analytics read.
 
         Reads only ``implied_vols`` joined back to the raw layer for display
-        fields (strike, option type). Never calls the solver: an analytics
-        view built on this touches stored numbers, not live computation, which
-        is what keeps a page load proportional to rows returned rather than to
-        the pricer calls a fresh inversion would cost.
+        fields (strike, option type, contract symbol). Never calls the
+        solver: an analytics view built on this touches stored numbers, not
+        live computation, which is what keeps a page load proportional to
+        rows returned rather than to the pricer calls a fresh inversion
+        would cost. ``contract_symbol`` is included so a caller (U17's
+        surface) can cross-reference a row against a set of legs excluded
+        for another reason, such as a U16 arbitrage violation, without a
+        second query.
         """
         cutoff = moment.isoformat()
         with closing(self.connect()) as conn:
             return list(
                 conn.execute(
-                    """SELECT q.option_type, q.strike, iv.implied_vol, iv.status,
-                              q.observed_at
+                    """SELECT q.contract_symbol, q.option_type, q.strike,
+                              iv.implied_vol, iv.status, q.observed_at
                        FROM implied_vols iv
                        JOIN quotes q ON q.id = iv.quote_id
                        JOIN snapshots s ON s.id = q.snapshot_id
@@ -600,6 +604,33 @@ class Store:
                          AND iv.status = 'solved'
                        ORDER BY q.option_type, q.strike""",
                     (symbol, expiry.isoformat(), cutoff, symbol, expiry.isoformat(), engine_version),
+                )
+            )
+
+    def underlying_bars(
+        self, symbol: str, *, start: date | None = None, end: date | None = None
+    ) -> list[sqlite3.Row]:
+        """Daily bars for one symbol, oldest first, for realized volatility (U17).
+
+        ``start``/``end`` are both inclusive when given, matching the
+        adapter's own ``underlying_history(symbol, start, end)`` contract
+        that fills this table.
+        """
+        clauses = ["symbol = ?"]
+        params: list = [symbol]
+        if start is not None:
+            clauses.append("bar_date >= ?")
+            params.append(start.isoformat())
+        if end is not None:
+            clauses.append("bar_date <= ?")
+            params.append(end.isoformat())
+        with closing(self.connect()) as conn:
+            return list(
+                conn.execute(
+                    f"""SELECT * FROM underlying_bars
+                        WHERE {' AND '.join(clauses)}
+                        ORDER BY bar_date""",
+                    params,
                 )
             )
 
