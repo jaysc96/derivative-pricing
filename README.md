@@ -27,10 +27,19 @@ pip install -e ".[app,dev]"
 pytest
 ```
 
-About 1700 tests, roughly three minutes. No test touches the network.
+About 2000 tests, roughly three minutes. No test touches the network.
 
-Run the calculator with `flask --app app run`, or the evidence and benchmark
-generators directly:
+The calculator is a React client (`client/`, Node 20+) against a Flask JSON
+API (`api/`) — build the client once, then run the same Flask app that serves
+both:
+
+```
+cd client && npm install && npm run build && cd ..
+flask --app app run
+```
+
+`npm test` inside `client/` runs its own suite (Vitest) separately from
+`pytest`. Or run the evidence and benchmark generators directly:
 
 ```
 python scripts/generate_evidence.py --check   # convergence artifact is current

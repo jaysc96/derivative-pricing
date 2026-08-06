@@ -21,12 +21,15 @@ dependencies = [
 [project.optional-dependencies]
 app = [
     "flask>=3.0",
-    "pandas>=2.2",
 ]
 data = [
     "yfinance>=1.5",
 ]
+# pandas is a test-only dependency now that U15 moved result rendering out of
+# app.py — tests/test_adapter.py uses it to fake yfinance's own DataFrame
+# response shape, not to run the app.
 dev = [
+    "pandas>=2.2",
     "pytest>=8.0",
 ]
 

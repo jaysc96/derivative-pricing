@@ -91,7 +91,12 @@ def test_no_caller_supplied_grid_survives_anywhere():
     assert not hasattr(opt, "S_max")
 
     banned = re.compile(r"setFDVariables|stock_min_price|stock_max_price")
-    searched = [REPO / "app.py", REPO / "templates" / "index.html", *REPO.glob("pricing/*.py")]
+    searched = [
+        REPO / "app.py",
+        REPO / "api" / "pricing_routes.py",
+        REPO / "client" / "src" / "App.jsx",
+        *REPO.glob("pricing/*.py"),
+    ]
     offenders = [p for p in searched if banned.search(p.read_text())]
     assert not offenders, f"price grid still reaches the caller in {offenders}"
 
