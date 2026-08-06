@@ -391,3 +391,39 @@ def test_an_empty_record_reports_a_real_boolean(store):
     state = fallback_trigger_state(store)
     assert state["triggered"] is False
     assert state["runs_recorded"] == 0
+
+
+def test_the_first_bad_run_on_a_fresh_archive_does_not_fire_the_trigger(store):
+    """A majority of one is one.
+
+    "More than half the window" is satisfied by a single unproductive run when
+    the window holds a single run, so the very first failing afternoon read as
+    a standing instruction to go build a second provider. The consecutive rule
+    needs three; the majority rule should not escalate on less.
+    """
+    for day in range(2):
+        run_capture(
+            FakeAdapter(chain_script=[RateLimited("429")] * 3),
+            store, ("SPY",), sleep=no_sleep, now=NOW + timedelta(days=day),
+        )
+        state = fallback_trigger_state(store)
+        assert state["triggered"] is False, f"fired after {day + 1} unproductive run(s)"
+
+    run_capture(
+        FakeAdapter(chain_script=[RateLimited("429")] * 3),
+        store, ("SPY",), sleep=no_sleep, now=NOW + timedelta(days=2),
+    )
+    assert fallback_trigger_state(store)["triggered"] is True, "three in a row still fires"
+
+
+def test_one_bad_run_among_two_good_ones_stays_quiet(store):
+    """The floor is a minimum sample, not a grace period on the first run."""
+    for day, healthy in enumerate([True, False, True]):
+        run_capture(
+            FakeAdapter(chain_script=None if healthy else [RateLimited("429")] * 3),
+            store, ("SPY",), sleep=no_sleep, now=NOW + timedelta(days=day),
+        )
+
+    state = fallback_trigger_state(store)
+    assert state["window_size"] == 3 and state["unproductive_in_window"] == 1
+    assert state["triggered"] is False

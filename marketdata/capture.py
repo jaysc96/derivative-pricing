@@ -42,6 +42,13 @@ DEFAULT_EXPIRIES_PER_SYMBOL = 4
 DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_BACKOFF_SECONDS = 2.0
 
+#: Runs a window needs before the majority rule may fire. Without a floor,
+#: "more than half the window" is satisfied by the very first unproductive run
+#: on a fresh archive — one bad afternoon reading as a standing instruction to
+#: go build a second provider. Matched to the consecutive rule's three, so
+#: neither path escalates on less evidence than the other.
+MIN_RUNS_FOR_MAJORITY = 3
+
 
 @dataclass
 class SymbolOutcome:
@@ -265,6 +272,9 @@ def fallback_trigger_state(store: Store, *, window_days: int = 7) -> dict:
     Degraded runs are counted and reported but do not fire the trigger on
     their own. Deciding how much shortfall is worth building a second provider
     for is a judgement about a provider we have not yet watched degrade.
+
+    The majority rule needs ``MIN_RUNS_FOR_MAJORITY`` runs on record before it
+    can fire, because a majority of one is one.
     """
     record = store.run_record()
     by_run: dict[str, list] = {}
@@ -291,11 +301,13 @@ def fallback_trigger_state(store: Store, *, window_days: int = 7) -> dict:
         if any(r["expiries_captured"] < r["expiries_requested"] for r in rows)
     )
 
+    majority = len(recent) >= MIN_RUNS_FOR_MAJORITY and unproductive * 2 > len(recent)
+
     return {
         "runs_recorded": len(runs),
         "consecutive_unproductive": consecutive,
         "unproductive_in_window": unproductive,
         "degraded_in_window": degraded,
         "window_size": len(recent),
-        "triggered": bool(consecutive >= 3 or unproductive * 2 > len(recent)),
+        "triggered": bool(consecutive >= 3 or majority),
     }
