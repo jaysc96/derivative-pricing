@@ -5,6 +5,7 @@ the network — the provider is an unofficial scraper and a suite that depends o
 Yahoo being reachable fails for reasons that have nothing to do with the code.
 """
 
+import socket
 from datetime import date, datetime, timezone
 
 import pandas as pd
@@ -19,6 +20,7 @@ from marketdata import (
     RateLimited,
     YFinanceAdapter,
 )
+from marketdata.yfinance_adapter import classify
 
 # Shaped like a real yfinance frame, including the parts that bite: a zero bid
 # on a thin contract, a null volume, and lastTradeDate as a tz-aware stamp.
@@ -177,6 +179,70 @@ def test_dated_chain_is_refused_rather_than_faked():
     """A provider without history says so; it does not quietly return today's."""
     with pytest.raises(NotSupported):
         adapter_for(FakeTicker()).option_chain("SPY", date(2026, 9, 18), as_of=date(2026, 1, 5))
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Failed to generate request signature",
+        "Could not separate calls from puts",
+        "Corporate action data missing",
+        "accurate pricing unavailable for this contract",
+    ],
+)
+def test_an_unrelated_error_is_not_read_as_a_rate_limit(message):
+    """The substring 'rate' lives inside four ordinary words.
+
+    Reading any of them as throttling costs three attempts with exponential
+    backoff and then files a `rate_limited` code, which is the signal the
+    fallback decision is built on. A wrong one there argues for building a
+    second provider because Yahoo is throttling us, when it is not.
+    """
+    assert not isinstance(classify(RuntimeError(message)), RateLimited)
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["429 Too Many Requests", "Rate limit exceeded", "ratelimited", "rate-limit hit"],
+)
+def test_a_real_rate_limit_is_still_recognised(message):
+    assert isinstance(classify(RuntimeError(message)), RateLimited)
+
+
+def test_a_provider_call_runs_under_a_socket_timeout():
+    """An unattended job has no worse failure than a hang.
+
+    A blocked run records nothing at all — neither productive nor
+    unproductive — so the fallback trigger never fires and history stops with
+    no signal that it has.
+    """
+    seen = []
+
+    class Observing(FakeTicker):
+        @property
+        def options(self):
+            seen.append(socket.getdefaulttimeout())
+            return super().options
+
+    before = socket.getdefaulttimeout()
+    YFinanceAdapter(lambda _symbol: Observing(), timeout=12.5).expiries("SPY")
+
+    assert seen == [12.5], "the bound was not in force during the call"
+    assert socket.getdefaulttimeout() == before, "the global default was not restored"
+
+
+def test_our_own_error_is_not_reclassified_into_a_failed_request():
+    """A missing dependency carries an instruction; classify() would erase it.
+
+    Everything the adapter raises is already in the interface's vocabulary, so
+    passing it back through the translator turns "install the data extra" into
+    "provider request failed (ProviderUnavailable)".
+    """
+    def refuse(_symbol):
+        raise ProviderUnavailable("yfinance is not installed; install the 'data' extra")
+
+    with pytest.raises(ProviderUnavailable, match="install the 'data' extra"):
+        YFinanceAdapter(refuse).expiries("SPY")
 
 
 # --------------------------------------------------------------------------

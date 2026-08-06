@@ -177,6 +177,36 @@ def test_the_ceiling_is_five_hundred_percent():
     assert MAX_VOL == 5.0
 
 
+def test_a_price_sitting_exactly_on_the_ceiling_still_solves():
+    """The ceiling test is tolerant on the same terms as the floor test.
+
+    Both endpoints come from the same pricer, so a quote landing exactly on
+    one differs from it only by the pricer's own last bit. Treating that as
+    exhaustion on the ceiling while forgiving it on the floor would report a
+    solver limit that is really a rounding artefact.
+    """
+    from pricing.implied import _price
+
+    at_ceiling = _price("call", "european", MAX_VOL, 100.0, K, R, Y, 1.0, 200)
+
+    for offset in (0.0, -1e-12, 1e-12):
+        result = implied_volatility(
+            "call", "european", at_ceiling + offset, 100.0, K, R, Y, 1.0
+        )
+        assert result.status == SOLVED, f"offset {offset:+.0e}: {result.detail}"
+        assert result.implied_vol == pytest.approx(MAX_VOL, abs=1e-3)
+
+
+def test_a_price_genuinely_above_the_ceiling_still_reports_exhaustion():
+    """The tolerance is float noise, not a licence to invent a solution."""
+    from pricing.implied import _price
+
+    at_ceiling = _price("call", "european", MAX_VOL, 100.0, K, R, Y, 1.0, 200)
+    result = implied_volatility("call", "european", at_ceiling + 0.5, 100.0, K, R, Y, 1.0)
+
+    assert result.status == BRACKET_EXHAUSTED
+
+
 def test_a_two_hundred_percent_wing_is_inside_the_bracket():
     """The case the ceiling exists for: the strikes the skew view is about."""
     from pricing.european import European_Option

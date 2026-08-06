@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from marketdata import ChainSnapshot, QuoteRecord, RateLimited, Store
+from marketdata import ChainSnapshot, NotSupported, QuoteRecord, RateLimited, Store
 from marketdata.adapter import MalformedResponse, ProviderUnavailable
 from marketdata.capture import capture_symbol, fallback_trigger_state, run_capture
 
@@ -170,6 +170,74 @@ def test_an_empty_expiry_list_is_recorded(store):
 
 
 # --------------------------------------------------------------------------
+# Partial success is not success
+# --------------------------------------------------------------------------
+
+FOUR = (NEAR, date(2027, 1, 15), date(2027, 2, 19), date(2027, 3, 19))
+
+
+def test_a_symbol_that_lost_three_of_four_expiries_is_marked_degraded(store):
+    """It advanced history, so it is productive — and it is not healthy.
+
+    Recording only `productive` cannot tell a full chain from a quarter of
+    one, which is the same silent degradation the empty-response check exists
+    to catch, arriving one level down.
+    """
+    class MostlyBlocked:
+        name = "fake"
+
+        def expiries(self, _symbol):
+            return FOUR
+
+        def option_chain(self, symbol, expiry, as_of=None):
+            if expiry != FOUR[0]:
+                raise RateLimited("429")
+            return chain(symbol, expiry, [quote()])
+
+    outcome = capture_symbol(MostlyBlocked(), store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.productive, "one good expiry is still history worth keeping"
+    assert outcome.degraded
+    assert (outcome.expiries, outcome.expiries_requested) == (1, 4)
+
+
+def test_a_complete_capture_is_not_degraded(store):
+    outcome = capture_symbol(FakeAdapter(), store, "SPY", sleep=no_sleep, today=NOW.date())
+    assert outcome.productive and not outcome.degraded
+
+
+def test_the_expiry_shortfall_reaches_the_record(store):
+    """An outcome nobody persists cannot inform the fallback decision."""
+    class MostlyBlocked:
+        name = "fake"
+
+        def expiries(self, _symbol):
+            return FOUR
+
+        def option_chain(self, symbol, expiry, as_of=None):
+            if expiry != FOUR[0]:
+                raise RateLimited("429")
+            return chain(symbol, expiry, [quote()])
+
+    run_capture(MostlyBlocked(), store, ("SPY",), sleep=no_sleep, now=NOW)
+
+    row = store.run_record()[0]
+    assert row["productive"] == 1 and row["reason"] is None
+    assert row["expiries_requested"] == 4 and row["expiries_captured"] == 1
+    assert row["two_sided"] == 1
+    assert fallback_trigger_state(store)["degraded_in_window"] == 1
+
+
+def test_a_capability_the_provider_lacks_is_not_filed_as_an_http_error(store):
+    """U11 publishes these codes, so they have to mean what they say."""
+    adapter = FakeAdapter(chain_script=[NotSupported("no dated chains")])
+    outcome = capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.reason == "not_supported"
+    assert adapter.chain_calls == 1, "a missing capability does not improve on retry"
+
+
+# --------------------------------------------------------------------------
 # Partial failure keeps what worked
 # --------------------------------------------------------------------------
 
@@ -291,3 +359,35 @@ def test_a_majority_of_unproductive_runs_fires_the_trigger(store):
         store, ("SPY",), sleep=no_sleep, now=NOW + timedelta(days=6),
     )
     assert fallback_trigger_state(store)["triggered"] is True
+
+
+def test_the_window_is_seven_days_rather_than_seven_runs(store):
+    """At any cadence but one-a-day those differ, and the window silently shrinks.
+
+    Six captures a day over two days is twelve runs. Counting the last *seven*
+    of them looks back barely a day, so a rough morning outvotes a healthy
+    yesterday and the trigger fires on a provider that is mostly working.
+    Four unproductive of twelve is not a majority; four of seven is.
+    """
+    # Yesterday clean, today rough — but never three in a row, so this test
+    # measures the window rule rather than the consecutive one.
+    pattern = {0: [True] * 6, 1: [False, True, False, True, False, False]}
+    for day, slots in pattern.items():
+        for slot, healthy in enumerate(slots):
+            run_capture(
+                FakeAdapter(chain_script=None if healthy else [RateLimited("429")] * 3),
+                store, ("SPY",), sleep=no_sleep, now=NOW + timedelta(days=day, hours=slot),
+            )
+
+    state = fallback_trigger_state(store)
+    assert state["consecutive_unproductive"] < 3, "precondition: the other rule is quiet"
+    assert state["window_size"] == 12, "a seven-day window covers both days of runs"
+    assert state["unproductive_in_window"] == 4
+    assert state["triggered"] is False, "four of twelve is not a majority"
+
+
+def test_an_empty_record_reports_a_real_boolean(store):
+    """`triggered` is read by callers; an empty list is not False."""
+    state = fallback_trigger_state(store)
+    assert state["triggered"] is False
+    assert state["runs_recorded"] == 0

@@ -18,14 +18,17 @@ the run record into a public repository.
 
 Partial failure keeps what worked. One blocked symbol does not discard the
 other five; the batch is not a transaction, because a day of history for five
-symbols is worth more than consistency across six.
+symbols is worth more than consistency across six. **Partial success is
+recorded as partial**, though: a symbol that returned one of the four expiries
+it asked for is genuinely productive and genuinely degraded, and the run record
+carries both counts so the second half is not invisible.
 """
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from .adapter import (
     MalformedResponse,
@@ -50,6 +53,18 @@ class SymbolOutcome:
     two_sided: int = 0
     reason: str | None = None
     expiries: int = 0
+    expiries_requested: int = 0
+
+    @property
+    def degraded(self) -> bool:
+        """Productive, but short of what it set out to collect.
+
+        Distinct from unproductive. A degraded run still advanced history, so
+        suppressing it would be wrong; treating it as an unqualified success
+        would hide a provider that has started refusing most of what we ask
+        for while still answering enough to look alive.
+        """
+        return self.productive and self.expiries < self.expiries_requested
 
 
 @dataclass
@@ -73,6 +88,11 @@ class CaptureResult:
     def two_sided(self) -> int:
         return sum(outcome.two_sided for outcome in self.outcomes)
 
+    @property
+    def degraded(self) -> bool:
+        """Any symbol came back short of the expiries it asked for."""
+        return any(outcome.degraded for outcome in self.outcomes)
+
 
 def _with_backoff(call, *, max_attempts: int, backoff: float, sleep=time.sleep):
     """Retry on rate limits and transient failures; give up with a reason code.
@@ -93,7 +113,10 @@ def _with_backoff(call, *, max_attempts: int, backoff: float, sleep=time.sleep):
         except MalformedResponse:
             return None, "malformed"
         except NotSupported:
-            return None, "http_error"
+            # Not a failure of the network — a capability this provider does
+            # not have. U11 publishes these codes, so it should not be filed
+            # under the one that means the provider answered with an error.
+            return None, "not_supported"
 
         if attempt < max_attempts - 1:
             sleep(delay)
@@ -133,10 +156,11 @@ def capture_symbol(
     if skip_expiry_day:
         expiries = tuple(e for e in expiries if e > reference)
 
+    wanted = expiries[:expiries_per_symbol]
     contracts = two_sided = captured_expiries = 0
     last_reason: str | None = None
 
-    for expiry in expiries[:expiries_per_symbol]:
+    for expiry in wanted:
         snapshot, reason = _with_backoff(
             lambda e=expiry: adapter.option_chain(symbol, e),
             max_attempts=max_attempts,
@@ -158,6 +182,7 @@ def capture_symbol(
             productive=False,
             reason=last_reason or "empty_response",
             expiries=captured_expiries,
+            expiries_requested=len(wanted),
         )
     if two_sided == 0:
         # Quotes arrived and none of them is usable. Stored, because the raw
@@ -169,6 +194,7 @@ def capture_symbol(
             two_sided=0,
             reason="all_zero_sided",
             expiries=captured_expiries,
+            expiries_requested=len(wanted),
         )
     return SymbolOutcome(
         symbol=symbol,
@@ -176,6 +202,7 @@ def capture_symbol(
         contracts=contracts,
         two_sided=two_sided,
         expiries=captured_expiries,
+        expiries_requested=len(wanted),
     )
 
 
@@ -215,6 +242,9 @@ def run_capture(
             productive=outcome.productive,
             reason=outcome.reason,
             contracts=outcome.contracts,
+            expiries_requested=outcome.expiries_requested,
+            expiries_captured=outcome.expiries,
+            two_sided=outcome.two_sided,
         )
 
     return result
@@ -226,6 +256,15 @@ def fallback_trigger_state(store: Store, *, window_days: int = 7) -> dict:
     The trigger fires on three consecutive unproductive runs, or on more than
     half of the runs in a seven-day window. Returning the counts rather than a
     boolean keeps the decision legible when it is taken.
+
+    The window is measured in days, back from the most recent run — not in
+    runs. Those coincide at one capture a day and diverge immediately at any
+    other cadence, which would quietly shorten the window exactly when the
+    schedule got busier. ``window_days <= 0`` means every run on record.
+
+    Degraded runs are counted and reported but do not fire the trigger on
+    their own. Deciding how much shortfall is worth building a second provider
+    for is a judgement about a provider we have not yet watched degrade.
     """
     record = store.run_record()
     by_run: dict[str, list] = {}
@@ -239,13 +278,24 @@ def fallback_trigger_state(store: Store, *, window_days: int = 7) -> dict:
             break
         consecutive += 1
 
-    recent = runs[: window_days or len(runs)]
+    if runs and window_days > 0:
+        cutoff = datetime.fromisoformat(runs[0][0]) - timedelta(days=window_days)
+        recent = [(s, rows) for s, rows in runs if datetime.fromisoformat(s) > cutoff]
+    else:
+        recent = runs
+
     unproductive = sum(1 for _s, rows in recent if not any(r["productive"] for r in rows))
+    degraded = sum(
+        1
+        for _s, rows in recent
+        if any(r["expiries_captured"] < r["expiries_requested"] for r in rows)
+    )
 
     return {
         "runs_recorded": len(runs),
         "consecutive_unproductive": consecutive,
         "unproductive_in_window": unproductive,
+        "degraded_in_window": degraded,
         "window_size": len(recent),
-        "triggered": consecutive >= 3 or (recent and unproductive * 2 > len(recent)),
+        "triggered": bool(consecutive >= 3 or unproductive * 2 > len(recent)),
     }

@@ -29,7 +29,7 @@ from .adapter import (
     UnderlyingBar,
 )
 from .secrets import MissingCredential, get_secret, load_dotenv
-from .store import FAILURE_REASONS, Store
+from .store import FAILURE_REASONS, SchemaMismatch, Store
 from .yfinance_adapter import YFinanceAdapter
 
 __all__ = [
@@ -43,6 +43,7 @@ __all__ = [
     "ProviderUnavailable",
     "QuoteRecord",
     "RateLimited",
+    "SchemaMismatch",
     "Store",
     "UnderlyingBar",
     "YFinanceAdapter",

@@ -134,6 +134,143 @@ def test_chain_as_of_before_any_capture_is_empty(store):
     assert store.chain_as_of("SPY", EXPIRY, T0 - timedelta(days=1)) == []
 
 
+# --------------------------------------------------------------------------
+# Deduplication must not swallow information
+#
+# The three tests below pin defects an earlier value-keyed UNIQUE constraint
+# had. Each one passed silently before, because the fixtures that covered this
+# area used fully-populated quotes moving in one direction.
+# --------------------------------------------------------------------------
+
+
+def test_a_quote_with_no_bid_still_deduplicates(store):
+    """SQLite treats NULLs as distinct, so a UNIQUE across them constrains nothing.
+
+    Roughly a third of real contracts have no bid. Under a value-keyed
+    constraint every one of them re-inserted on every capture, forever, and
+    the count of stored quotes stopped meaning distinct observations.
+    """
+    for hour in range(3):
+        store.write_snapshot(
+            snapshot(quote(bid=None, ask=0.05), captured_at=T0 + timedelta(hours=hour))
+        )
+
+    assert store.coverage()["quotes"] == 1, "an unchanged bidless quote is one observation"
+
+
+def test_a_quote_that_returns_to_an_earlier_price_is_a_new_observation(store):
+    """Bid and ask oscillate; a return to a previous level is not a duplicate.
+
+    Keying dedup on the values themselves collides with an observation hours
+    old and drops the current one, which then leaves the point-in-time read
+    asserting a price that had already been superseded.
+    """
+    for hour, (bid, ask) in enumerate([(1.00, 1.10), (1.05, 1.15), (1.00, 1.10)]):
+        store.write_snapshot(
+            snapshot(quote(bid=bid, ask=ask), captured_at=T0 + timedelta(hours=hour))
+        )
+
+    assert store.coverage()["quotes"] == 3
+    latest = store.chain_as_of("SPY", EXPIRY, T0 + timedelta(hours=2))
+    assert latest[0]["bid"] == pytest.approx(1.00), "the read returned a superseded price"
+
+
+def test_an_untraded_contract_still_tracks_its_moving_quote(store):
+    """`last_trade_at` is frozen all day for a contract nobody trades.
+
+    That collapses a value key to bid and ask alone, which is exactly the pair
+    that moves — so the contracts least likely to trade were the ones whose
+    price history was most likely to be dropped.
+    """
+    frozen = datetime(2026, 7, 28, 14, 2, tzinfo=timezone.utc)
+    for hour, bid in enumerate([1.00, 1.05, 1.00, 1.05]):
+        store.write_snapshot(
+            snapshot(
+                quote(bid=bid, ask=bid + 0.10, traded=frozen),
+                captured_at=T0 + timedelta(hours=hour),
+            )
+        )
+
+    assert store.coverage()["quotes"] == 4
+
+
+def test_replaying_one_capture_writes_no_second_copy(store):
+    """A retried run must be idempotent, even though a revert is not."""
+    for _ in range(2):
+        store.write_snapshot(snapshot(quote(), captured_at=T0))
+    assert store.coverage()["quotes"] == 1
+
+
+# --------------------------------------------------------------------------
+# Backfill has to be reachable, not merely storable
+# --------------------------------------------------------------------------
+
+
+def test_a_backfilled_row_is_readable_at_the_date_it_describes(store):
+    """The `as_of` column exists so this query works.
+
+    Filtering the point-in-time read on capture time instead made every
+    backfilled row invisible: it is written today, so it never satisfies a
+    cutoff in the past it was written to fill.
+    """
+    store.write_snapshot(
+        snapshot(quote(), captured_at=T0, origin="backfill", as_of=date(2026, 1, 15))
+    )
+
+    rows = store.chain_as_of("SPY", EXPIRY, datetime(2026, 1, 16, tzinfo=timezone.utc))
+    assert len(rows) == 1 and rows[0]["origin"] == "backfill"
+
+
+def test_a_backfilled_row_is_not_knowable_before_its_day_closes(store):
+    """A vendor's record of a day is not available partway through that day.
+
+    Dating it to the start of its `as_of` day would make every backfilled
+    quote readable hours before it existed, which is precisely the lookahead
+    the archive is built to keep out. It is dated to the day's end instead.
+    """
+    store.write_snapshot(
+        snapshot(quote(), captured_at=T0, origin="backfill", as_of=date(2026, 1, 15))
+    )
+
+    midday = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+    assert store.chain_as_of("SPY", EXPIRY, midday) == []
+
+
+def test_a_backfill_does_not_displace_the_live_history_it_precedes(store):
+    """Written last, but it describes January — so it sorts before February."""
+    live = datetime(2026, 2, 2, 15, 0, tzinfo=timezone.utc)
+    store.write_snapshot(snapshot(quote(bid=9.0, ask=9.2), captured_at=live))
+    store.write_snapshot(
+        snapshot(
+            quote(bid=3.0, ask=3.2),
+            captured_at=T0,
+            origin="backfill",
+            as_of=date(2026, 1, 15),
+        )
+    )
+
+    january = store.chain_as_of("SPY", EXPIRY, datetime(2026, 1, 20, tzinfo=timezone.utc))
+    february = store.chain_as_of("SPY", EXPIRY, datetime(2026, 2, 3, tzinfo=timezone.utc))
+
+    assert january[0]["bid"] == pytest.approx(3.0)
+    assert february[0]["bid"] == pytest.approx(9.0), "the backfill overwrote later history"
+
+
+def test_a_database_from_an_older_schema_is_refused_by_name(tmp_path):
+    """There is no migration path (KTD7), so silence would be the wrong answer."""
+    import sqlite3
+
+    from marketdata.store import SchemaMismatch
+
+    path = tmp_path / "old.db"
+    Store(path)
+    with sqlite3.connect(path) as conn:
+        conn.execute("PRAGMA user_version = 1")
+
+    with pytest.raises(SchemaMismatch, match="schema version 1"):
+        Store(path)
+
+
 def test_coverage_counts_two_sided_quotes(store):
     store.write_snapshot(
         snapshot(

@@ -9,16 +9,29 @@ file rather than a refactor.
 ``yfinance`` is imported lazily so the package imports without it. The test
 suite exercises this adapter against recorded fixtures and never reaches the
 network; only a live capture needs the dependency present.
+
+**Every provider call runs under a socket timeout.** ``yfinance`` gives no
+timeout parameter to pass through, and an unattended job has no worse failure
+than a hang: a run that blocks forever records nothing at all, so the capture
+looks neither productive nor unproductive and the fallback trigger never fires.
+Setting the default socket timeout for the duration of the call bounds each
+individual socket operation. It does not bound total wall clock — a server
+dribbling one byte at a time stays under it indefinitely — so it is a floor
+under the failure mode rather than a guarantee.
 """
 
 from __future__ import annotations
 
+import re
+import socket
+from contextlib import contextmanager
 from datetime import date, datetime, timezone
 
 from .adapter import (
     ChainSnapshot,
     MalformedResponse,
     NotSupported,
+    ProviderError,
     ProviderUnavailable,
     QuoteRecord,
     RateLimited,
@@ -31,6 +44,39 @@ from .adapter import (
 )
 
 
+#: Seconds any single socket operation may block. Chosen well above a healthy
+#: chain pull and well below the gap between scheduled runs.
+DEFAULT_TIMEOUT_SECONDS = 30.0
+
+#: Matched against lowercased exception text. Anchored phrases, not loose
+#: substrings: ``"rate"`` alone appears inside "generate", "separate",
+#: "accurate" and "corporate", and every one of those would have been read as
+#: a throttle — three attempts with backoff, then a `rate_limited` code that
+#: says the provider is throttling us when it is doing nothing of the kind.
+_RATE_LIMITED = re.compile(r"\brate[\s_-]?limit|\b429\b|\btoo many requests?\b")
+_TIMED_OUT = re.compile(r"\btimed?[\s_-]?out\b|\btimeout\b")
+_NETWORK = re.compile(r"\bconnection\b|\bnetwork\b|\bunreachable\b|\bssl\b|\bdns\b|"
+                      r"\b(?:could not|failed to|cannot) resolve\b")
+
+
+@contextmanager
+def socket_timeout(seconds: float | None):
+    """Bound each socket operation for the duration of the block.
+
+    ``yfinance`` exposes no timeout parameter, so this is the only lever
+    available without reaching past the library into its session.
+    """
+    if seconds is None:
+        yield
+        return
+    previous = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(seconds)
+    try:
+        yield
+    finally:
+        socket.setdefaulttimeout(previous)
+
+
 def classify(exc: Exception) -> Exception:
     """Translate a library exception into one of ours.
 
@@ -39,11 +85,11 @@ def classify(exc: Exception) -> Exception:
     "broken" is the one the capture job's backoff depends on.
     """
     text = str(exc).lower()
-    if "rate" in text or "429" in text or "too many" in text:
+    if _RATE_LIMITED.search(text):
         return RateLimited("provider rate limited the request")
-    if "timeout" in text or "timed out" in text:
+    if _TIMED_OUT.search(text):
         return ProviderUnavailable("provider timed out")
-    if any(token in text for token in ("connection", "network", "resolve", "ssl")):
+    if _NETWORK.search(text):
         return ProviderUnavailable("network failure reaching provider")
     return ProviderUnavailable(f"provider request failed ({type(exc).__name__})")
 
@@ -53,9 +99,14 @@ class YFinanceAdapter:
 
     name = "yfinance"
 
-    def __init__(self, ticker_factory=None) -> None:
-        """``ticker_factory`` exists for tests to inject a recorded fixture."""
+    def __init__(self, ticker_factory=None, timeout: float | None = DEFAULT_TIMEOUT_SECONDS) -> None:
+        """``ticker_factory`` exists for tests to inject a recorded fixture.
+
+        ``timeout`` bounds each socket operation; ``None`` disables the bound,
+        which is only sensible when no socket is involved.
+        """
         self._ticker_factory = ticker_factory
+        self._timeout = timeout
 
     def _ticker(self, symbol: str):
         if self._ticker_factory is not None:
@@ -70,7 +121,12 @@ class YFinanceAdapter:
 
     def expiries(self, symbol: str) -> tuple[date, ...]:
         try:
-            raw = self._ticker(symbol).options
+            with socket_timeout(self._timeout):
+                raw = self._ticker(symbol).options
+        except ProviderError:
+            # Already ours — a missing dependency, most often. Re-classifying
+            # would relabel it as a failed request and lose the instruction.
+            raise
         except Exception as exc:  # noqa: BLE001 - translating, not handling
             raise classify(exc) from exc
         if raw is None:
@@ -91,7 +147,10 @@ class YFinanceAdapter:
 
         ticker = self._ticker(symbol)
         try:
-            chain = ticker.option_chain(expiry.isoformat())
+            with socket_timeout(self._timeout):
+                chain = ticker.option_chain(expiry.isoformat())
+        except ProviderError:
+            raise
         except Exception as exc:  # noqa: BLE001
             raise classify(exc) from exc
 
@@ -156,9 +215,12 @@ class YFinanceAdapter:
         self, symbol: str, start: date, end: date
     ) -> tuple[UnderlyingBar, ...]:
         try:
-            frame = self._ticker(symbol).history(
-                start=start.isoformat(), end=end.isoformat(), auto_adjust=False
-            )
+            with socket_timeout(self._timeout):
+                frame = self._ticker(symbol).history(
+                    start=start.isoformat(), end=end.isoformat(), auto_adjust=False
+                )
+        except ProviderError:
+            raise
         except Exception as exc:  # noqa: BLE001
             raise classify(exc) from exc
         if frame is None:

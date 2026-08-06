@@ -151,13 +151,27 @@ def implied_volatility(
             detail="price is flat in volatility here — at the exercise boundary",
         )
 
-    if target_price > at_ceiling:
+    if target_price > at_ceiling + PRICE_TOLERANCE:
         return InversionResult(
             status=BRACKET_EXHAUSTED,
             target_price=target_price,
             price_at_floor=at_floor,
             price_at_ceiling=at_ceiling,
             detail=f"price exceeds the value at {MAX_VOL:.0%} volatility",
+        )
+
+    # Symmetric with the floor test above, and resolved here rather than left
+    # to the root-finder. A price a fraction above the ceiling makes the
+    # residual negative at *both* ends of the bracket, so Brent refuses it and
+    # the failure surfaces as no-solution — which would be a third answer to
+    # the same question, and the wrong one.
+    if target_price >= at_ceiling - PRICE_TOLERANCE:
+        return InversionResult(
+            status=SOLVED,
+            implied_vol=MAX_VOL,
+            target_price=target_price,
+            price_at_floor=at_floor,
+            price_at_ceiling=at_ceiling,
         )
 
     def residual(sig):

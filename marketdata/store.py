@@ -11,24 +11,53 @@ the engine changes. The provider's *own* implied volatility is stored here,
 which is not a contradiction: it is part of the observation, not something we
 derived, and the difference between it and ours is a product.
 
-**Quotes are deduplicated by observation, not by capture.** The unique key is
-the contract plus its recency marker plus both sides of the quote, so polling
-twice in a day stores one row when nothing moved and two when something did.
-A quote row therefore belongs to the capture that *first* saw it. That makes
-the archive point-in-time by construction — ``chain_as_of`` reconstructs what
-was knowable at a moment by taking the latest observation per contract at or
-before it, which is what a backtest needs and what a per-capture snapshot table
-would quietly get wrong.
+**Quotes are deduplicated against the previous observation, not against all
+history.** Polling a quiet hour stores no new quote row; a quote that moves
+stores one. The comparison is against the *latest stored observation for that
+contract*, in Python, which matters for two reasons an earlier value-keyed
+``UNIQUE`` got wrong:
+
+* A ``UNIQUE`` spanning nullable columns does not constrain anything in SQLite,
+  which treats NULLs as distinct. Roughly a third of real contracts have no
+  bid, so those rows deduplicated against nothing and re-inserted on every
+  single capture.
+* A quote that *returns* to an earlier value is new information, not a
+  duplicate. Bid and ask oscillate between two levels all day, and
+  ``last_trade_at`` is frozen for a contract nobody has traded — so a key built
+  from those values collides with an observation hours old, drops the current
+  one, and leaves the archive asserting a stale price.
+
+**Every stored quote carries its own ``observed_at``**, and that is the column
+the point-in-time read orders on. For a live pull it is the capture time. For a
+backfilled row it is the end of the ``as_of`` day, because a vendor's record of
+a past date describes that date rather than the moment we asked for it — and
+filtering those rows by capture time, as an earlier version did, made them
+invisible to every historical query.
+
+``chain_as_of`` therefore reconstructs what was knowable at a moment by taking
+the latest observation per contract at or before it, which is what a backtest
+needs and what a per-capture snapshot table would quietly get wrong.
 """
 
 from __future__ import annotations
 
 import sqlite3
 from contextlib import closing
-from datetime import date, datetime
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 from .adapter import ChainSnapshot, QuoteRecord, UnderlyingBar
+
+#: Bumped whenever the shape below changes. There is no migration tooling here
+#: (KTD7 keeps this to one file), so a database written by an older shape is
+#: refused by name rather than read as if it matched.
+SCHEMA_VERSION = 2
+
+#: SQLite's parameter limit is 32,766 on modern builds and 999 on older ones.
+#: Chains run to a few hundred contracts, so chunking the lookup keeps the
+#: dedup query within the smaller bound without anyone having to know which
+#: build they are on.
+_PARAM_CHUNK = 400
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS snapshots (
@@ -57,10 +86,14 @@ CREATE TABLE IF NOT EXISTS quotes (
     open_interest   INTEGER,
     provider_iv     REAL,
     last_trade_at   TEXT,
-    UNIQUE (contract_symbol, last_trade_at, bid, ask)
+    observed_at     TEXT NOT NULL,
+    -- Both columns are NOT NULL, so this constraint actually constrains. It
+    -- makes re-running one capture idempotent; it is not the dedup rule, which
+    -- compares against the previous observation in write_snapshot.
+    UNIQUE (contract_symbol, observed_at)
 );
 CREATE INDEX IF NOT EXISTS idx_quotes_snapshot ON quotes (snapshot_id);
-CREATE INDEX IF NOT EXISTS idx_quotes_contract ON quotes (contract_symbol);
+CREATE INDEX IF NOT EXISTS idx_quotes_observed ON quotes (contract_symbol, observed_at);
 
 CREATE TABLE IF NOT EXISTS underlying_bars (
     symbol   TEXT NOT NULL,
@@ -80,7 +113,13 @@ CREATE TABLE IF NOT EXISTS capture_runs (
     symbol      TEXT NOT NULL,
     productive  INTEGER NOT NULL,
     reason      TEXT,
-    contracts   INTEGER NOT NULL DEFAULT 0
+    contracts   INTEGER NOT NULL DEFAULT 0,
+    -- A run that captured one of the four expiries it asked for is not the
+    -- same event as one that captured all four, and recording only
+    -- `productive` cannot tell them apart.
+    expiries_requested INTEGER NOT NULL DEFAULT 0,
+    expiries_captured  INTEGER NOT NULL DEFAULT 0,
+    two_sided   INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_runs_started ON capture_runs (started_at);
 """
@@ -97,8 +136,26 @@ FAILURE_REASONS = frozenset(
         "empty_response",
         "malformed",
         "all_zero_sided",
+        "not_supported",
     }
 )
+
+
+class SchemaMismatch(RuntimeError):
+    """The database on disk was written by a different schema version."""
+
+
+def observed_at(snapshot: ChainSnapshot) -> str:
+    """When the quotes in this snapshot describe the market.
+
+    For a live pull that is the capture time. For a backfilled row it is the
+    end of the ``as_of`` day: a vendor's record of a past date is a statement
+    about that date, and ordering it by when we happened to ask would file a
+    January quote after everything captured since.
+    """
+    if snapshot.origin == "backfill":
+        return datetime.combine(snapshot.as_of, time.max, tzinfo=timezone.utc).isoformat()
+    return snapshot.captured_at.isoformat()
 
 
 class Store:
@@ -112,7 +169,19 @@ class Store:
 
     def _connect_and_migrate(self) -> None:
         with closing(self.connect()) as conn:
+            populated = conn.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'quotes'"
+            ).fetchone()[0]
+            version = conn.execute("PRAGMA user_version").fetchone()[0]
+            if populated and version != SCHEMA_VERSION:
+                raise SchemaMismatch(
+                    f"{self.path} was written by schema version {version}, and this "
+                    f"code expects {SCHEMA_VERSION}. There is no migration path "
+                    "(KTD7); delete the file and re-capture, or keep it aside and "
+                    "point at a new one."
+                )
             conn.executescript(SCHEMA)
+            conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             conn.commit()
 
     def connect(self) -> sqlite3.Connection:
@@ -125,13 +194,49 @@ class Store:
     # Writes
     # ------------------------------------------------------------------
 
+    def _previous_observations(
+        self, conn: sqlite3.Connection, contracts: list[str], before: str
+    ) -> dict[str, tuple]:
+        """The latest stored observation at or before ``before``, per contract.
+
+        Scoped to the contracts in the snapshot being written rather than the
+        whole table, and chunked to stay inside SQLite's parameter limit.
+        """
+        latest: dict[str, tuple] = {}
+        for start in range(0, len(contracts), _PARAM_CHUNK):
+            chunk = contracts[start : start + _PARAM_CHUNK]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"""SELECT q.contract_symbol, q.bid, q.ask, q.last_trade_at
+                    FROM quotes q
+                    JOIN (
+                      SELECT contract_symbol, MAX(observed_at) AS mx
+                      FROM quotes
+                      WHERE contract_symbol IN ({placeholders}) AND observed_at <= ?
+                      GROUP BY contract_symbol
+                    ) prev
+                      ON prev.contract_symbol = q.contract_symbol
+                     AND prev.mx = q.observed_at""",
+                (*chunk, before),
+            ).fetchall()
+            for row in rows:
+                latest[row["contract_symbol"]] = (
+                    row["bid"],
+                    row["ask"],
+                    row["last_trade_at"],
+                )
+        return latest
+
     def write_snapshot(self, snapshot: ChainSnapshot) -> tuple[int, int]:
         """Persist a chain. Returns the snapshot id and how many quotes were new.
 
-        Quotes already seen with the same recency marker and the same two sides
-        are ignored rather than duplicated, so a second poll in a quiet hour
-        adds a snapshot row and no quote rows.
+        A quote whose two sides and recency marker match the *previous stored
+        observation for that contract* is not written again, so a second poll
+        in a quiet hour adds a snapshot row and no quote rows. Anything else —
+        including a return to a price last seen hours ago — is a new
+        observation and is stored as one.
         """
+        stamp = observed_at(snapshot)
         with closing(self.connect()) as conn:
             cursor = conn.execute(
                 """INSERT INTO snapshots
@@ -149,13 +254,21 @@ class Store:
             )
             snapshot_id = int(cursor.lastrowid)
 
+            previous = self._previous_observations(
+                conn, [q.contract_symbol for q in snapshot.quotes], stamp
+            )
+
             written = 0
             for quote in snapshot.quotes:
+                traded = quote.last_trade_at.isoformat() if quote.last_trade_at else None
+                if previous.get(quote.contract_symbol) == (quote.bid, quote.ask, traded):
+                    continue
                 result = conn.execute(
                     """INSERT OR IGNORE INTO quotes
                        (snapshot_id, contract_symbol, option_type, strike, bid, ask,
-                        last, volume, open_interest, provider_iv, last_trade_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        last, volume, open_interest, provider_iv, last_trade_at,
+                        observed_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         snapshot_id,
                         quote.contract_symbol,
@@ -167,7 +280,8 @@ class Store:
                         quote.volume,
                         quote.open_interest,
                         quote.provider_iv,
-                        quote.last_trade_at.isoformat() if quote.last_trade_at else None,
+                        traded,
+                        stamp,
                     ),
                 )
                 written += result.rowcount
@@ -209,6 +323,9 @@ class Store:
         productive: bool,
         reason: str | None = None,
         contracts: int = 0,
+        expiries_requested: int = 0,
+        expiries_captured: int = 0,
+        two_sided: int = 0,
     ) -> None:
         """Record one symbol's outcome in one capture run.
 
@@ -216,6 +333,11 @@ class Store:
         degrades by returning empty frames rather than raising, so without a
         record of zero-contract runs a field rename on the provider's side
         would leave every run reporting success while history quietly stopped.
+
+        The expiry counts exist for the partial case, which is the same failure
+        wearing a success's clothes: a symbol that returned one of the four
+        expiries it asked for advanced history and is honestly productive, but
+        recording only that would hide three quarters of a missing surface.
         """
         if reason is not None and reason not in FAILURE_REASONS:
             raise ValueError(
@@ -225,9 +347,20 @@ class Store:
         with closing(self.connect()) as conn:
             conn.execute(
                 """INSERT INTO capture_runs
-                   (started_at, provider, symbol, productive, reason, contracts)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (started_at.isoformat(), provider, symbol, int(productive), reason, contracts),
+                   (started_at, provider, symbol, productive, reason, contracts,
+                    expiries_requested, expiries_captured, two_sided)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    started_at.isoformat(),
+                    provider,
+                    symbol,
+                    int(productive),
+                    reason,
+                    contracts,
+                    expiries_requested,
+                    expiries_captured,
+                    two_sided,
+                ),
             )
             conn.commit()
 
@@ -243,23 +376,30 @@ class Store:
         keeping it as a query rather than a stored per-capture chain is what
         makes point-in-time correctness a property of the archive rather than
         of whoever writes the query.
+
+        Selection is on ``observed_at``, which is the market time the quote
+        describes. Ordering on row id instead would be a proxy for it that
+        holds only while rows arrive in market order, and breaks the moment a
+        backfill lands after the live history it belongs before.
         """
+        cutoff = moment.isoformat()
         with closing(self.connect()) as conn:
             return list(
                 conn.execute(
                     """SELECT q.*, s.captured_at, s.as_of, s.origin, s.underlying_price
                        FROM quotes q
                        JOIN snapshots s ON s.id = q.snapshot_id
-                       WHERE s.symbol = ? AND s.expiry = ? AND s.captured_at <= ?
-                         AND q.id IN (
-                           SELECT MAX(q2.id) FROM quotes q2
-                           JOIN snapshots s2 ON s2.id = q2.snapshot_id
-                           WHERE s2.symbol = s.symbol AND s2.expiry = s.expiry
-                             AND s2.captured_at <= ?
-                           GROUP BY q2.contract_symbol
-                         )
+                       JOIN (
+                         SELECT q2.contract_symbol AS cs, MAX(q2.observed_at) AS mx
+                         FROM quotes q2
+                         JOIN snapshots s2 ON s2.id = q2.snapshot_id
+                         WHERE s2.symbol = ? AND s2.expiry = ? AND q2.observed_at <= ?
+                         GROUP BY q2.contract_symbol
+                       ) latest
+                         ON latest.cs = q.contract_symbol AND latest.mx = q.observed_at
+                       WHERE s.symbol = ? AND s.expiry = ?
                        ORDER BY q.option_type, q.strike""",
-                    (symbol, expiry.isoformat(), moment.isoformat(), moment.isoformat()),
+                    (symbol, expiry.isoformat(), cutoff, symbol, expiry.isoformat()),
                 )
             )
 
