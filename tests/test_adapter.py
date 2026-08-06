@@ -76,15 +76,32 @@ class FakeChain:
 class FakeTicker:
     """A recorded provider. Raises whatever it is told to raise."""
 
-    def __init__(self, *, calls=CALLS, puts=PUTS, expiries=("2026-09-18",), error=None, history=None):
+    def __init__(
+        self, *, calls=CALLS, puts=PUTS, expiries=("2026-09-18",), error=None, history=None,
+        fast_info=None, info=None,
+    ):
         self._calls, self._puts, self._expiries = calls, puts, expiries
         self._error, self._history = error, history
+        self._fast_info = fast_info if fast_info is not None else {}
+        self._info = info if info is not None else {}
 
     @property
     def options(self):
         if self._error:
             raise self._error
         return self._expiries
+
+    @property
+    def fast_info(self):
+        if self._error:
+            raise self._error
+        return self._fast_info
+
+    @property
+    def info(self):
+        if self._error:
+            raise self._error
+        return self._info
 
     def option_chain(self, _expiry):
         if self._error:
@@ -334,3 +351,69 @@ def test_snapshot_records_origin_and_as_of():
     assert snapshot.origin == "live"
     assert snapshot.as_of == snapshot.captured_at.date()
     assert snapshot.captured_at.tzinfo is timezone.utc
+
+
+# --------------------------------------------------------------------------
+# Risk-free rate and dividend yield
+# --------------------------------------------------------------------------
+
+
+def test_risk_free_rate_scales_the_treasury_quote_to_a_decimal():
+    """Yahoo quotes ^IRX as a bare number (3.73 meaning 3.73%), not a fraction."""
+    rate = adapter_for(FakeTicker(fast_info={"lastPrice": 3.73})).risk_free_rate()
+    assert rate == pytest.approx(0.0373)
+
+
+def test_dividend_yield_reads_the_trailing_annual_field():
+    """Not `dividendYield` — measured against the tracked set, that field is
+    missing for a near-zero payer while `trailingAnnualDividendYield` is
+    present for every one of them, and already a decimal fraction."""
+    yield_ = adapter_for(FakeTicker(info={"trailingAnnualDividendYield": 0.0074})).dividend_yield("SPY")
+    assert yield_ == pytest.approx(0.0074)
+
+
+def test_dividend_yield_absent_is_none_not_zero():
+    """A missing field and a confirmed non-payer are not distinguished (see the
+    adapter's own docstring) — but both must come back as None, not a
+    fabricated 0.0 that looks like a measured fact."""
+    assert adapter_for(FakeTicker(info={})).dividend_yield("NVDA") is None
+
+
+def test_a_missing_rate_reading_is_none():
+    assert adapter_for(FakeTicker(fast_info={})).risk_free_rate() is None
+
+
+@pytest.mark.parametrize(
+    "raised,expected",
+    [
+        (RuntimeError("429 Too Many Requests"), RateLimited),
+        (RuntimeError("Read timed out"), ProviderUnavailable),
+    ],
+)
+def test_rate_and_yield_fetch_failures_become_interface_errors(raised, expected):
+    adapter = adapter_for(FakeTicker(error=raised))
+    with pytest.raises(expected):
+        adapter.risk_free_rate()
+    with pytest.raises(expected):
+        adapter.dividend_yield("SPY")
+
+
+def test_a_dated_rate_or_yield_is_refused_rather_than_faked():
+    with pytest.raises(NotSupported):
+        adapter_for(FakeTicker()).risk_free_rate(as_of=date(2026, 1, 5))
+    with pytest.raises(NotSupported):
+        adapter_for(FakeTicker()).dividend_yield("SPY", as_of=date(2026, 1, 5))
+
+
+def test_an_implausible_rate_is_rejected_as_a_likely_units_error():
+    """A units error (a percentage handed through as a whole number) lands far
+    outside any real rate; the validator catches the shape, not the sign."""
+    with pytest.raises(MalformedResponse):
+        adapter_for(FakeTicker(fast_info={"lastPrice": 250.0})).risk_free_rate()
+
+
+def test_a_negative_rate_is_accepted():
+    """Short rates have genuinely gone negative for years at a time; rejecting
+    on sign alone would be a wrong assumption baked into the validator."""
+    rate = adapter_for(FakeTicker(fast_info={"lastPrice": -0.5})).risk_free_rate()
+    assert rate == pytest.approx(-0.005)

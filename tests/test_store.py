@@ -26,7 +26,7 @@ def quote(symbol_suffix="C00600000", *, bid=12.5, ask=12.9, traded=None, strike=
     )
 
 
-def snapshot(*quotes, captured_at=T0, origin="live", as_of=None):
+def snapshot(*quotes, captured_at=T0, origin="live", as_of=None, risk_free_rate=None, dividend_yield=None):
     return ChainSnapshot(
         provider="yfinance",
         symbol="SPY",
@@ -36,6 +36,8 @@ def snapshot(*quotes, captured_at=T0, origin="live", as_of=None):
         origin=origin,
         underlying_price=604.0,
         quotes=quotes,
+        risk_free_rate=risk_free_rate,
+        dividend_yield=dividend_yield,
     )
 
 
@@ -97,6 +99,21 @@ def test_origin_and_as_of_survive_the_round_trip(store):
     assert row["origin"] == "backfill"
     assert row["as_of"] == "2026-01-05"
     assert row["captured_at"] == T0.isoformat()
+
+
+def test_rate_and_yield_survive_the_round_trip(store):
+    """Captured now, alongside the quotes — not looked up later at derive time."""
+    store.write_snapshot(snapshot(quote(), risk_free_rate=0.0373, dividend_yield=0.0074))
+    row = store.chain_as_of("SPY", EXPIRY, T0 + timedelta(minutes=1))[0]
+    assert row["risk_free_rate"] == pytest.approx(0.0373)
+    assert row["dividend_yield"] == pytest.approx(0.0074)
+
+
+def test_a_missing_rate_or_yield_survives_as_null_not_a_fabricated_default(store):
+    store.write_snapshot(snapshot(quote()))
+    row = store.chain_as_of("SPY", EXPIRY, T0 + timedelta(minutes=1))[0]
+    assert row["risk_free_rate"] is None
+    assert row["dividend_yield"] is None
 
 
 def test_origin_is_constrained_to_two_values(store):

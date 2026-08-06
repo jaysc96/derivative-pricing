@@ -33,6 +33,7 @@ from typing import Protocol
 MAX_PRICE = 1_000_000.0
 MAX_STRIKE = 1_000_000.0
 MAX_IMPLIED_VOL = 100.0  # 10,000%, which no real quote reaches
+MAX_RATE = 1.0  # 100%, wide enough to admit a units error rather than a real rate
 
 
 class ProviderError(Exception):
@@ -107,6 +108,19 @@ class ChainSnapshot:
     ``origin`` records which, because "the quote we observed" and "the quote a
     vendor records for a past date" are different claims and a series that
     silently mixes them is not auditable.
+
+    ``risk_free_rate`` and ``dividend_yield`` are captured now, at the same
+    moment as the quotes, rather than looked up later when a price gets
+    inverted. Inverting a January snapshot with today's treasury rate would be
+    a quieter version of the same lookahead bias the point-in-time archive
+    exists to keep out — the rate and yield are market observations exactly
+    like the quotes, so they get the same discipline: stored now, read later,
+    never re-fetched for a date they no longer describe.
+
+    Both are ``None`` when the lookup failed — a rate-fetch hiccup should not
+    cost the chain itself, which is the irreplaceable half. A snapshot missing
+    either sits in the archive same as any other; the derived layer is what
+    declines to invert it, and says why.
     """
 
     provider: str
@@ -117,6 +131,8 @@ class ChainSnapshot:
     origin: str  # "live" | "backfill"
     underlying_price: float | None
     quotes: tuple[QuoteRecord, ...]
+    risk_free_rate: float | None = None
+    dividend_yield: float | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +171,29 @@ class MarketDataAdapter(Protocol):
         self, symbol: str, start: date, end: date
     ) -> tuple[UnderlyingBar, ...]:
         """Daily bars for the underlying, inclusive of both ends."""
+        ...
+
+    def risk_free_rate(self, as_of: date | None = None) -> float | None:
+        """A short-term rate proxy, as a decimal (0.05, not 5).
+
+        Market-wide rather than per-symbol. ``as_of=None`` means now; a date
+        means that date, and a provider without historical rates raises
+        ``NotSupported`` exactly as ``option_chain`` does. Returns ``None``
+        rather than raising on an ordinary fetch failure — a capture that
+        cannot price the treasury market has still captured the chain, which
+        is the half that cannot be recovered later.
+        """
+        ...
+
+    def dividend_yield(self, symbol: str, as_of: date | None = None) -> float | None:
+        """Trailing dividend yield for one underlying, as a decimal.
+
+        Per-symbol, unlike the rate. ``None`` means no dividend program or an
+        unavailable figure — the two are not distinguished, because a provider
+        that omits the field for a genuine non-payer looks identical to one
+        that simply has nothing to report, and guessing which would be a
+        stronger claim than the data supports.
+        """
         ...
 
 
@@ -235,3 +274,26 @@ def validate_option_type(value) -> str:
     if text not in ("call", "put"):
         raise MalformedResponse(f"option_type is neither call nor put: {value!r}")
     return text
+
+
+def clean_rate(value, *, field: str) -> float | None:
+    """Coerce a risk-free rate or dividend yield, or reject the record.
+
+    Unlike a price, a small negative value is not a parse failure — short-term
+    rates have genuinely gone negative (Japan, the Eurozone, for years), so
+    rejecting on sign would be a wrong assumption baked into a validator. The
+    bound is width instead: past +/-100% the number is almost certainly a
+    units error (a percentage handed through as a whole number, e.g. ``5.0``
+    meaning 5% rather than 500%) rather than a real rate.
+    """
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise MalformedResponse(f"{field} is not numeric") from exc
+    if number != number:  # NaN
+        return None
+    if abs(number) > MAX_RATE:
+        raise MalformedResponse(f"{field} exceeds +/-{MAX_RATE:.0%}: {number}")
+    return number

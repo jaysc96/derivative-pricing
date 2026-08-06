@@ -45,11 +45,18 @@ class FakeAdapter:
 
     name = "fake"
 
-    def __init__(self, *, expiries=(NEAR,), chain_script=None, expiry_error=None):
+    def __init__(
+        self, *, expiries=(NEAR,), chain_script=None, expiry_error=None,
+        rate_error=None, yield_error=None,
+    ):
         self._expiries = expiries
         self._expiry_error = expiry_error
         self._chain_script = list(chain_script or [])
+        self._rate_error = rate_error
+        self._yield_error = yield_error
         self.chain_calls = 0
+        self.rate_calls = 0
+        self.yield_calls = 0
 
     def expiries(self, _symbol):
         if self._expiry_error:
@@ -64,6 +71,18 @@ class FakeAdapter:
         if isinstance(step, Exception):
             raise step
         return step if step is not None else chain(symbol, expiry, [quote()])
+
+    def risk_free_rate(self, as_of=None):
+        self.rate_calls += 1
+        if self._rate_error:
+            raise self._rate_error
+        return 0.05
+
+    def dividend_yield(self, symbol, as_of=None):
+        self.yield_calls += 1
+        if self._yield_error:
+            raise self._yield_error
+        return 0.02
 
 
 @pytest.fixture
@@ -194,6 +213,12 @@ def test_a_symbol_that_lost_three_of_four_expiries_is_marked_degraded(store):
                 raise RateLimited("429")
             return chain(symbol, expiry, [quote()])
 
+        def risk_free_rate(self, as_of=None):
+            return 0.05
+
+        def dividend_yield(self, symbol, as_of=None):
+            return 0.02
+
     outcome = capture_symbol(MostlyBlocked(), store, "SPY", sleep=no_sleep, today=NOW.date())
 
     assert outcome.productive, "one good expiry is still history worth keeping"
@@ -219,6 +244,12 @@ def test_the_expiry_shortfall_reaches_the_record(store):
                 raise RateLimited("429")
             return chain(symbol, expiry, [quote()])
 
+        def risk_free_rate(self, as_of=None):
+            return 0.05
+
+        def dividend_yield(self, symbol, as_of=None):
+            return 0.02
+
     run_capture(MostlyBlocked(), store, ("SPY",), sleep=no_sleep, now=NOW)
 
     row = store.run_record()[0]
@@ -238,6 +269,59 @@ def test_a_capability_the_provider_lacks_is_not_filed_as_an_http_error(store):
 
 
 # --------------------------------------------------------------------------
+# Rate and dividend yield ride along with the chain
+# --------------------------------------------------------------------------
+
+
+def test_rate_and_yield_are_fetched_once_per_symbol_not_per_expiry(store):
+    """Four expiries, one rate call and one yield call — not four of each.
+
+    The rate is market-wide and the yield barely moves within a run, so
+    fetching either per expiry would be four times the network cost for a
+    figure that has not changed.
+    """
+    adapter = FakeAdapter(expiries=(NEAR, date(2027, 1, 15), date(2027, 2, 19), date(2027, 3, 19)))
+    capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert adapter.chain_calls == 4
+    assert adapter.rate_calls == 1
+    assert adapter.yield_calls == 1
+
+
+def test_rate_and_yield_reach_the_stored_snapshot(store):
+    capture_symbol(FakeAdapter(), store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    row = store.chain_as_of("SPY", NEAR, NOW + timedelta(minutes=1))[0]
+    assert row["risk_free_rate"] == pytest.approx(0.05)
+    assert row["dividend_yield"] == pytest.approx(0.02)
+
+
+def test_a_failed_rate_fetch_does_not_cost_the_chain(store):
+    """The chain is the irreplaceable half; a rate hiccup should not block it.
+
+    The derived layer is what declines to invert a snapshot missing the rate,
+    with its own explicit reason — not the capture job refusing to store what
+    it did successfully see.
+    """
+    adapter = FakeAdapter(rate_error=RateLimited("429"))
+    outcome = capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.productive, "quotes still arrived even though the rate did not"
+    row = store.chain_as_of("SPY", NEAR, NOW + timedelta(minutes=1))[0]
+    assert row["risk_free_rate"] is None
+    assert row["dividend_yield"] == pytest.approx(0.02), "the yield fetch is independent"
+
+
+def test_a_failed_yield_fetch_does_not_cost_the_rate(store):
+    adapter = FakeAdapter(yield_error=RateLimited("429"))
+    capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    row = store.chain_as_of("SPY", NEAR, NOW + timedelta(minutes=1))[0]
+    assert row["risk_free_rate"] == pytest.approx(0.05)
+    assert row["dividend_yield"] is None
+
+
+# --------------------------------------------------------------------------
 # Partial failure keeps what worked
 # --------------------------------------------------------------------------
 
@@ -253,6 +337,12 @@ def test_one_blocked_symbol_does_not_discard_the_others(store):
 
         def option_chain(self, symbol, expiry, as_of=None):
             return chain(symbol, expiry, [quote()])
+
+        def risk_free_rate(self, as_of=None):
+            return 0.05
+
+        def dividend_yield(self, symbol, as_of=None):
+            return 0.02
 
     result = run_capture(
         PerSymbol(), store, ("SPY", "QQQ", "IWM"), sleep=no_sleep, now=NOW
@@ -277,6 +367,12 @@ def test_every_symbol_outcome_reaches_the_record(store):
             if symbol == "IWM":
                 raise RateLimited("429")
             return chain(symbol, expiry, [quote()])
+
+        def risk_free_rate(self, as_of=None):
+            return 0.05
+
+        def dividend_yield(self, symbol, as_of=None):
+            return 0.02
 
     run_capture(PerSymbol(), store, ("SPY", "IWM"), sleep=no_sleep, now=NOW)
 

@@ -21,7 +21,15 @@ counts look normal either way, so a cron set to a convenient hour collects a
 full-looking chain of nothing. The run reports ``all_zero_sided`` and exits
 non-zero rather than pretending otherwise, but a schedule that earns that
 result every night accrues no history at all. US equity options trade
-13:30-20:00 UTC (14:30-21:00 during British Summer Time).
+13:30-20:00 UTC while the US observes daylight time (roughly March-November)
+and 14:30-21:00 UTC the rest of the year — the shift is the *US* clock change,
+not the scheduling host's own time zone or its own daylight-saving calendar,
+which will not generally move on the same dates.
+
+**Each run also derives.** After a productive capture, every raw quote not yet
+inverted at the current engine version is (KTD9) — cheap, since only what
+capture just wrote is pending, and it is what keeps the derived table current
+without a second scheduled job to forget to set up.
 
 **Exit status is the whole interface to a scheduler.** Nothing watches stdout on
 a host, so the run's conclusion has to survive as an integer:
@@ -50,6 +58,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from marketdata import Store, YFinanceAdapter  # noqa: E402
 from marketdata.capture import fallback_trigger_state, run_capture  # noqa: E402
+from marketdata.derive import derive_batch  # noqa: E402
 
 #: Provisional, and deliberately the same six the spike measures — a tracked
 #: set that drifts from the set being validated makes the spike's numbers
@@ -172,6 +181,9 @@ def main(argv=None, *, adapter=None, store=None, sleep=time.sleep) -> int:
         f"\n{result.contracts:,} contracts, {result.two_sided:,} two-sided ({share:.1%})"
         f"{' — DEGRADED' if result.degraded else ''}"
     )
+
+    derived = derive_batch(store)
+    print(f"{derived:,} quote(s) derived")
 
     trigger = fallback_trigger_state(store)
     if trigger["triggered"]:

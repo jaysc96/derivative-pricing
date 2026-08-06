@@ -63,6 +63,12 @@ class FakeAdapter:
             quotes=tuple(self._quotes),
         )
 
+    def risk_free_rate(self, as_of=None):
+        return 0.05
+
+    def dividend_yield(self, symbol, as_of=None):
+        return 0.02
+
 
 @pytest.fixture
 def store(tmp_path):
@@ -191,6 +197,12 @@ def test_a_degraded_symbol_says_so(store, capsys):
                 as_of=NOW.date(), origin="live", underlying_price=604.0,
                 quotes=(quote(),),
             )
+
+        def risk_free_rate(self, as_of=None):
+            return 0.05
+
+        def dividend_yield(self, symbol, as_of=None):
+            return 0.02
 
     code = run(store, ["--symbols", "SPY"], adapter=Partial())
     output = capsys.readouterr().out

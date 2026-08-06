@@ -39,9 +39,17 @@ from .adapter import (
     clean_count,
     clean_implied_vol,
     clean_price,
+    clean_rate,
     validate_option_type,
     validate_strike,
 )
+
+#: The 13-week Treasury bill, chosen over the 5- and 10-year notes because the
+#: tracked set's near expiries (a few weeks to a few months) are short-dated —
+#: a longer tenor would be a maturity mismatch in the other direction. Yahoo
+#: quotes it as a bare discount-rate number (e.g. 3.73, meaning 3.73%), not a
+#: fraction, so the adapter divides by 100 before returning.
+RATE_PROXY_SYMBOL = "^IRX"
 
 
 #: Seconds any single socket operation may block. Chosen well above a healthy
@@ -198,6 +206,47 @@ class YFinanceAdapter:
                 )
             )
         return records
+
+    def risk_free_rate(self, as_of: date | None = None) -> float | None:
+        if as_of is not None:
+            raise NotSupported(
+                "yfinance serves only current rates; a dated rate needs the "
+                "backfill adapter"
+            )
+        try:
+            with socket_timeout(self._timeout):
+                ticker = self._ticker(RATE_PROXY_SYMBOL)
+                info = getattr(ticker, "fast_info", None)
+                value = info.get("lastPrice") if info is not None and hasattr(info, "get") else None
+        except ProviderError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise classify(exc) from exc
+        if value is None:
+            return None
+        return clean_rate(value / 100, field="risk_free_rate")
+
+    def dividend_yield(self, symbol: str, as_of: date | None = None) -> float | None:
+        if as_of is not None:
+            raise NotSupported(
+                "yfinance serves only current yields; a dated yield needs the "
+                "backfill adapter"
+            )
+        try:
+            with socket_timeout(self._timeout):
+                info = self._ticker(symbol).info
+        except ProviderError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise classify(exc) from exc
+        # trailingAnnualDividendYield, not the same-named-but-differently-scaled
+        # dividendYield field: measured against the tracked set, it is the one
+        # populated for every symbol including a near-zero payer (NVDA), and it
+        # is already a decimal fraction rather than a bare percentage number —
+        # dividendYield and its sibling `yield` field are the same figure
+        # multiplied by 100, an inconsistency yfinance carries across fields.
+        value = info.get("trailingAnnualDividendYield") if info else None
+        return clean_rate(value, field="dividend_yield")
 
     def _underlying_price(self, ticker) -> float | None:
         """Best-effort. A chain without a spot is still worth keeping."""

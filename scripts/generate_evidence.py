@@ -1,13 +1,25 @@
-"""Regenerate docs/evidence/convergence.md from the pricers themselves.
+"""Regenerate the committed evidence artifacts.
 
-    python scripts/generate_evidence.py           # write the artifact
-    python scripts/generate_evidence.py --check   # fail if it would change
+    python scripts/generate_evidence.py           # write both artifacts
+    python scripts/generate_evidence.py --check   # fail if convergence.md would change
 
-The artifact is committed, and `--check` is what makes committing it safe: a
-number in the README that nobody can reproduce is a claim, not evidence. Every
-figure here is deterministic — the stochastic methods are seeded, and each
-value is rounded before it is written — so a clean checkout reproduces the
-committed file byte for byte.
+Two artifacts, two different reproducibility rules.
+
+`docs/evidence/convergence.md` is pure function of the code: the stochastic
+methods are seeded and every value is rounded before being written, so a clean
+checkout reproduces it byte for byte. `--check` is what makes committing it
+safe, and is the only artifact `--check` covers.
+
+`docs/evidence/surface.md` is not that kind of artifact — it reads the
+accumulated market-data store, which is not in the repository and changes on
+every capture (KTD9's derived layer, U12). The byte-for-byte rule cannot apply
+to a table that is expected to differ from one regeneration to the next; its
+rule instead is the one U11's note states: regenerated, never hand-edited,
+with the generating query and the source snapshot's own timestamp recorded
+inside the artifact, so a reader can tell what moment it describes without
+trusting the commit date. `--check` does not touch it — checking a store-
+derived table for staleness would fail immediately after any real capture,
+which is not staleness, it is the table doing its job.
 
 Deliberately excluded: timings. They are the one thing that cannot reproduce,
 and they live in docs/evidence/benchmarks.md with their own hardware caveat.
@@ -16,9 +28,10 @@ and they live in docs/evidence/benchmarks.md with their own hardware caveat.
 import argparse
 import itertools
 import sys
+from datetime import date, datetime, timezone
 from pathlib import Path
 
-from pricing import AMERICAN_METHODS, EUROPEAN_METHODS, American_Option, European_Option
+from pricing import AMERICAN_METHODS, ENGINE_VERSION, EUROPEAN_METHODS, American_Option, European_Option
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "tests"))
 from reference_values import (  # noqa: E402
@@ -27,7 +40,11 @@ from reference_values import (  # noqa: E402
     HULL_EUROPEAN,
 )
 
+from marketdata import Store  # noqa: E402
+
 OUTPUT = Path(__file__).parent.parent / "docs" / "evidence" / "convergence.md"
+SURFACE_OUTPUT = Path(__file__).parent.parent / "docs" / "evidence" / "surface.md"
+STORE_PATH = Path(__file__).parent.parent / "data" / "quotes.db"
 
 TREE_STEPS = 200
 MC_PATHS, MC_STEPS = 50_000, 50
@@ -191,6 +208,123 @@ are labelled as this library's own number.
 """
 
 
+def _status_row(counts: dict) -> str:
+    order = ("solved", "no_quote", "no_solution", "bracket_exhausted", "not_identified", "no_market_context")
+    return " | ".join(str(counts.get(status, 0)) for status in order)
+
+
+#: A real chain runs to a hundred-plus strikes; convergence.md's own grid is
+#: ten rows. An evenly-strided sample stays a compact illustration of the
+#: shape rather than a raw dump, while still spanning the whole chain.
+MAX_STRIKE_ROWS = 24
+
+
+def _strike_table(store: Store, symbol: str, expiry: date, moment: datetime) -> str:
+    rows = store.derived_as_of(symbol, expiry, moment, ENGINE_VERSION)
+    if not rows:
+        return "*No solved contract in this chain yet.*"
+    by_strike: dict[float, dict[str, float]] = {}
+    for row in rows:
+        by_strike.setdefault(row["strike"], {})[row["option_type"]] = row["implied_vol"]
+    strikes = sorted(by_strike)
+    stride = max(1, len(strikes) // MAX_STRIKE_ROWS)
+    sampled = strikes[::stride]
+    if sampled[-1] != strikes[-1]:
+        sampled.append(strikes[-1])
+
+    lines = ["| Strike | Call IV | Put IV |", "|---|---|---|"]
+    for strike in sampled:
+        sides = by_strike[strike]
+        call = f"{sides['call']:.4f}" if "call" in sides else "-"
+        put = f"{sides['put']:.4f}" if "put" in sides else "-"
+        lines.append(f"| {strike:.1f} | {call} | {put} |")
+    note = (
+        f"\n\n{len(strikes)} solved strikes in this chain; every {stride} shown."
+        if stride > 1 else ""
+    )
+    return "\n".join(lines) + note
+
+
+def render_surface() -> str:
+    """The IV surface artifact — reads the store, never the solver (KTD9).
+
+    Unlike ``render()`` above, this is not byte-for-byte reproducible and does
+    not try to be: the store it reads changes on every capture, so the rule is
+    "regenerated, never hand-edited," with the generating query and the source
+    snapshot's own timestamp recorded here rather than trusted from the commit
+    date. See the module docstring.
+    """
+    generated_at = datetime.now(timezone.utc).isoformat()
+
+    if not STORE_PATH.exists():
+        return f"""# Implied volatility surface
+
+Generated by `scripts/generate_evidence.py` at {generated_at}. Not checked
+for staleness — see the module docstring.
+
+No archive exists yet at `{STORE_PATH.relative_to(STORE_PATH.parent.parent)}`.
+This section fills in once `scripts/capture.py` has run at least once.
+"""
+
+    store = Store(STORE_PATH)
+    chains = store.symbols_and_expiries()
+    if not chains:
+        return f"""# Implied volatility surface
+
+Generated by `scripts/generate_evidence.py` at {generated_at}. Not checked
+for staleness — see the module docstring.
+
+The archive exists but has captured nothing yet.
+"""
+
+    summary = ["| Symbol | Expiry | Solved | No quote | No solution | Bracket exhausted | Not identified | No market context |",
+               "|---|---|---|---|---|---|---|---|"]
+    best = None
+    best_solved = -1
+    for symbol, expiry in chains:
+        counts = store.derived_coverage(ENGINE_VERSION, symbol=symbol, expiry=expiry)
+        summary.append(f"| {symbol} | {expiry.isoformat()} | {_status_row(counts)} |")
+        solved = counts.get("solved", 0)
+        if solved > best_solved:
+            best, best_solved = (symbol, expiry), solved
+
+    coverage = store.coverage()
+    source_timestamp = coverage["last_capture"] or "unknown"
+
+    detail = ""
+    if best is not None and best_solved > 0:
+        symbol, expiry = best
+        moment = datetime.fromisoformat(coverage["last_capture"])
+        detail = f"""
+## {symbol}, expiry {expiry.isoformat()}
+
+The chain with the most solved contracts, as an example of the shape rather
+than a claim about this symbol specifically.
+
+{_strike_table(store, symbol, expiry, moment)}
+"""
+
+    return f"""# Implied volatility surface
+
+Generated by `scripts/generate_evidence.py` at {generated_at}, reading
+`{STORE_PATH.relative_to(STORE_PATH.parent.parent)}` at engine version {ENGINE_VERSION}.
+Not checked for staleness: this table is expected to differ from one
+regeneration to the next, and a `--check` failure would describe the table
+doing its job, not a defect. See the module docstring.
+
+**Source snapshot timestamp: {source_timestamp}.** This is the moment the
+underlying data describes, distinct from the generation time above — the
+figure that matters for deciding whether this table is current.
+
+Counts are by inversion status per chain (KTD9). `No market context` means the
+snapshot itself is missing a risk-free rate or dividend yield, a capture-time
+gap rather than a solver outcome; every other non-solved status is the
+solver's own conclusion about the quote, detailed in `pricing/implied.py`.
+
+{chr(10).join(summary)}
+{detail}"""
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail if the artifact would change")
@@ -210,6 +344,9 @@ def main():
 
     OUTPUT.write_text(generated)
     print(f"wrote {OUTPUT}")
+
+    SURFACE_OUTPUT.write_text(render_surface())
+    print(f"wrote {SURFACE_OUTPUT}")
     return 0
 
 

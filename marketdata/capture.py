@@ -27,7 +27,7 @@ carries both counts so the second half is not invisible.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta, timezone
 
 from .adapter import (
@@ -163,6 +163,20 @@ def capture_symbol(
     if skip_expiry_day:
         expiries = tuple(e for e in expiries if e > reference)
 
+    # Fetched once per symbol, not once per expiry — the rate is market-wide
+    # and the yield barely moves within a run, so re-fetching per expiry would
+    # be four times the network cost for a figure that has not changed. A
+    # fetch failure degrades to None rather than failing the capture: the
+    # chain is the irreplaceable half, and the derived layer is what declines
+    # to invert a snapshot missing either, with its own explicit reason.
+    rate, _ = _with_backoff(
+        lambda: adapter.risk_free_rate(), max_attempts=max_attempts, backoff=backoff, sleep=sleep
+    )
+    dividend_yield, _ = _with_backoff(
+        lambda: adapter.dividend_yield(symbol),
+        max_attempts=max_attempts, backoff=backoff, sleep=sleep,
+    )
+
     wanted = expiries[:expiries_per_symbol]
     contracts = two_sided = captured_expiries = 0
     last_reason: str | None = None
@@ -178,6 +192,7 @@ def capture_symbol(
             last_reason = reason
             continue
 
+        snapshot = replace(snapshot, risk_free_rate=rate, dividend_yield=dividend_yield)
         store.write_snapshot(snapshot)
         captured_expiries += 1
         contracts += len(snapshot.quotes)

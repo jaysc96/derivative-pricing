@@ -46,8 +46,18 @@ from .greeks import N, Option, n
 EUROPEAN_METHODS = ("BSM", "BT", "TT", "MC", "FD")
 AMERICAN_METHODS = ("BT", "TT", "LSMC", "FD")
 
+#: Bumped by hand whenever a change here would change a computed price, Greek,
+#: or implied volatility — a defect fix, a bump-scale change, a tree-step
+#: default. KTD9's derived layer stamps every row with this number and treats
+#: a mismatch as a signal to rebuild wholesale from the raw archive, so this is
+#: the one thing that makes stored history re-derivable rather than merely
+#: accumulated. Nothing computes it automatically; a version bump is a
+#: deliberate claim that prior derived output no longer matches this code.
+ENGINE_VERSION = 1
+
 __all__ = [
     "AMERICAN_METHODS",
+    "ENGINE_VERSION",
     "EUROPEAN_METHODS",
     "American_Option",
     "European_Option",

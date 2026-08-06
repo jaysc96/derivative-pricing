@@ -11,6 +11,15 @@ the engine changes. The provider's *own* implied volatility is stored here,
 which is not a contradiction: it is part of the observation, not something we
 derived, and the difference between it and ours is a product.
 
+**The risk-free rate and dividend yield live on the snapshot, not the derived
+row.** Inverting a price needs both, and they are market observations exactly
+like the quotes — captured at the same moment, stored once, never re-fetched.
+Re-fetching today's rate to re-invert a January snapshot would be a quieter
+version of the lookahead bias the point-in-time archive exists to prevent.
+Both are nullable: a rate-fetch hiccup should not cost the chain itself, and
+the derived layer is what declines to invert a snapshot missing either, with
+its own explicit reason rather than a silent gap.
+
 **Quotes are deduplicated against the previous observation, not against all
 history.** Polling a quiet hour stores no new quote row; a quote that moves
 stores one. The comparison is against the *latest stored observation for that
@@ -51,7 +60,7 @@ from .adapter import ChainSnapshot, QuoteRecord, UnderlyingBar
 #: Bumped whenever the shape below changes. There is no migration tooling here
 #: (KTD7 keeps this to one file), so a database written by an older shape is
 #: refused by name rather than read as if it matched.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 #: SQLite's parameter limit is 32,766 on modern builds and 999 on older ones.
 #: Chains run to a few hundred contracts, so chunking the lookup keeps the
@@ -68,7 +77,9 @@ CREATE TABLE IF NOT EXISTS snapshots (
     captured_at     TEXT NOT NULL,
     as_of           TEXT NOT NULL,
     origin          TEXT NOT NULL CHECK (origin IN ('live', 'backfill')),
-    underlying_price REAL
+    underlying_price REAL,
+    risk_free_rate  REAL,
+    dividend_yield  REAL
 );
 CREATE INDEX IF NOT EXISTS idx_snapshots_symbol_expiry
     ON snapshots (symbol, expiry, as_of);
@@ -94,6 +105,25 @@ CREATE TABLE IF NOT EXISTS quotes (
 );
 CREATE INDEX IF NOT EXISTS idx_quotes_snapshot ON quotes (snapshot_id);
 CREATE INDEX IF NOT EXISTS idx_quotes_observed ON quotes (contract_symbol, observed_at);
+
+-- KTD9's derived table. `status` and `implied_vol` mirror InversionResult, so
+-- the same vocabulary describes why a contract has no volatility whether the
+-- reason is the solver's or upstream of it (missing rate/yield, no quote).
+-- UNIQUE per (quote_id, engine_version) lets a rebuild recompute every quote
+-- under a new version without colliding with rows the old version left behind
+-- — the rebuild deletes those explicitly rather than relying on this to.
+CREATE TABLE IF NOT EXISTS implied_vols (
+    id              INTEGER PRIMARY KEY,
+    quote_id        INTEGER NOT NULL REFERENCES quotes (id),
+    engine_version  INTEGER NOT NULL,
+    status          TEXT NOT NULL,
+    implied_vol     REAL,
+    detail          TEXT,
+    computed_at     TEXT NOT NULL,
+    UNIQUE (quote_id, engine_version)
+);
+CREATE INDEX IF NOT EXISTS idx_implied_vols_quote ON implied_vols (quote_id);
+CREATE INDEX IF NOT EXISTS idx_implied_vols_version ON implied_vols (engine_version);
 
 CREATE TABLE IF NOT EXISTS underlying_bars (
     symbol   TEXT NOT NULL,
@@ -240,8 +270,9 @@ class Store:
         with closing(self.connect()) as conn:
             cursor = conn.execute(
                 """INSERT INTO snapshots
-                   (provider, symbol, expiry, captured_at, as_of, origin, underlying_price)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (provider, symbol, expiry, captured_at, as_of, origin, underlying_price,
+                    risk_free_rate, dividend_yield)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     snapshot.provider,
                     snapshot.symbol,
@@ -250,6 +281,8 @@ class Store:
                     snapshot.as_of.isoformat(),
                     snapshot.origin,
                     snapshot.underlying_price,
+                    snapshot.risk_free_rate,
+                    snapshot.dividend_yield,
                 ),
             )
             snapshot_id = int(cursor.lastrowid)
@@ -386,7 +419,8 @@ class Store:
         with closing(self.connect()) as conn:
             return list(
                 conn.execute(
-                    """SELECT q.*, s.captured_at, s.as_of, s.origin, s.underlying_price
+                    """SELECT q.*, s.captured_at, s.as_of, s.origin, s.underlying_price,
+                              s.risk_free_rate, s.dividend_yield
                        FROM quotes q
                        JOIN snapshots s ON s.id = q.snapshot_id
                        JOIN (
@@ -432,4 +466,139 @@ class Store:
         with closing(self.connect()) as conn:
             return list(
                 conn.execute("SELECT * FROM capture_runs ORDER BY started_at DESC")
+            )
+
+    # ------------------------------------------------------------------
+    # Derived layer (KTD9)
+    # ------------------------------------------------------------------
+
+    def pending_for_derivation(self, engine_version: int) -> list[sqlite3.Row]:
+        """Raw quotes not yet derived at ``engine_version``, with what inverting them needs.
+
+        Every pending quote is returned, two-sided or not — the solver's own
+        no-quote path is what records a one-sided quote's exclusion, so this
+        does not duplicate that check. ``time_to_expiry`` is computed from
+        ``as_of``, not ``captured_at``: for a live row they agree, but a
+        backfilled row's ``captured_at`` is today, and expiry minus today
+        would be nonsense for a date the row actually describes months ago.
+        """
+        with closing(self.connect()) as conn:
+            return list(
+                conn.execute(
+                    """SELECT q.id AS quote_id, q.option_type, q.strike, q.bid, q.ask,
+                              s.symbol, s.expiry, s.as_of, s.underlying_price,
+                              s.risk_free_rate, s.dividend_yield,
+                              CAST(julianday(s.expiry) - julianday(s.as_of) AS REAL) / 365.0
+                                AS time_to_expiry
+                       FROM quotes q
+                       JOIN snapshots s ON s.id = q.snapshot_id
+                       LEFT JOIN implied_vols iv
+                         ON iv.quote_id = q.id AND iv.engine_version = ?
+                       WHERE iv.id IS NULL""",
+                    (engine_version,),
+                )
+            )
+
+    def write_derived(
+        self,
+        *,
+        quote_id: int,
+        engine_version: int,
+        status: str,
+        implied_vol: float | None,
+        detail: str,
+        computed_at: datetime,
+    ) -> None:
+        """Persist one derived row. Replaces rather than duplicates on retry."""
+        with closing(self.connect()) as conn:
+            conn.execute(
+                """INSERT INTO implied_vols
+                   (quote_id, engine_version, status, implied_vol, detail, computed_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT (quote_id, engine_version) DO UPDATE SET
+                     status=excluded.status, implied_vol=excluded.implied_vol,
+                     detail=excluded.detail, computed_at=excluded.computed_at""",
+                (quote_id, engine_version, status, implied_vol, detail, computed_at.isoformat()),
+            )
+            conn.commit()
+
+    def clear_derived(self) -> int:
+        """Wipe the derived table. The wholesale half of KTD9's rebuild.
+
+        Raw quotes are untouched — this only ever removes rows this layer
+        computed, never anything captured.
+        """
+        with closing(self.connect()) as conn:
+            result = conn.execute("DELETE FROM implied_vols")
+            conn.commit()
+            return result.rowcount
+
+    def derived_coverage(
+        self, engine_version: int, *, symbol: str | None = None, expiry: date | None = None
+    ) -> dict:
+        """Counts by status at one engine version, for the evidence surface.
+
+        Global by default; ``symbol``/``expiry`` narrow to one chain, for a
+        per-chain breakdown without a second, parallel query living outside
+        this class.
+        """
+        clauses = ["iv.engine_version = ?"]
+        params: list = [engine_version]
+        joined = ""
+        if symbol is not None or expiry is not None:
+            joined = "JOIN quotes q ON q.id = iv.quote_id JOIN snapshots s ON s.id = q.snapshot_id"
+            if symbol is not None:
+                clauses.append("s.symbol = ?")
+                params.append(symbol)
+            if expiry is not None:
+                clauses.append("s.expiry = ?")
+                params.append(expiry.isoformat())
+        with closing(self.connect()) as conn:
+            rows = conn.execute(
+                f"""SELECT iv.status, COUNT(*) AS n FROM implied_vols iv
+                    {joined}
+                    WHERE {' AND '.join(clauses)}
+                    GROUP BY iv.status""",
+                params,
+            )
+            return {row["status"]: row["n"] for row in rows}
+
+    def symbols_and_expiries(self) -> list[tuple[str, date]]:
+        """Every distinct chain the archive has ever captured, for a surface index."""
+        with closing(self.connect()) as conn:
+            rows = conn.execute("SELECT DISTINCT symbol, expiry FROM snapshots ORDER BY symbol, expiry")
+            return [(r["symbol"], date.fromisoformat(r["expiry"])) for r in rows]
+
+    def derived_as_of(
+        self, symbol: str, expiry: date, moment: datetime, engine_version: int
+    ) -> list[sqlite3.Row]:
+        """Solved implied volatilities as of ``moment`` — the analytics read.
+
+        Reads only ``implied_vols`` joined back to the raw layer for display
+        fields (strike, option type). Never calls the solver: an analytics
+        view built on this touches stored numbers, not live computation, which
+        is what keeps a page load proportional to rows returned rather than to
+        the pricer calls a fresh inversion would cost.
+        """
+        cutoff = moment.isoformat()
+        with closing(self.connect()) as conn:
+            return list(
+                conn.execute(
+                    """SELECT q.option_type, q.strike, iv.implied_vol, iv.status,
+                              q.observed_at
+                       FROM implied_vols iv
+                       JOIN quotes q ON q.id = iv.quote_id
+                       JOIN snapshots s ON s.id = q.snapshot_id
+                       JOIN (
+                         SELECT q2.contract_symbol AS cs, MAX(q2.observed_at) AS mx
+                         FROM quotes q2
+                         JOIN snapshots s2 ON s2.id = q2.snapshot_id
+                         WHERE s2.symbol = ? AND s2.expiry = ? AND q2.observed_at <= ?
+                         GROUP BY q2.contract_symbol
+                       ) latest ON latest.cs = q.contract_symbol AND latest.mx = q.observed_at
+                       WHERE s.symbol = ? AND s.expiry = ? AND iv.engine_version = ?
+                         AND iv.status = 'solved'
+                       ORDER BY q.option_type, q.strike""",
+                    (symbol, expiry.isoformat(), cutoff, symbol, expiry.isoformat(), engine_version),
+                )
             )
