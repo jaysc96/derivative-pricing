@@ -120,12 +120,11 @@ def _violating_legs(store: Store, symbol: str, expiries: list[date], moment: dat
     return legs
 
 
-def _latest_moment(store: Store) -> datetime | None:
-    last_capture = store.coverage()["last_capture"]
-    return datetime.fromisoformat(last_capture) if last_capture else None
+def _latest_moment(store: Store, symbol: str) -> datetime | None:
+    return store.latest_capture(symbol)
 
 
-def _live_expiries(store: Store, symbol: str, moment: datetime) -> list[date]:
+def live_expiries(store: Store, symbol: str, moment: datetime) -> list[date]:
     """Expiries not yet settled as of ``moment``, sorted ascending.
 
     ``symbols_and_expiries`` returns every expiry the archive has ever
@@ -157,11 +156,11 @@ def build_skew(
     and re-checking the same chains. Computed here when not supplied, so
     calling this alone is unchanged.
     """
-    moment = _latest_moment(store)
+    moment = _latest_moment(store, symbol)
     if moment is None:
         return []
 
-    expiries = _live_expiries(store, symbol, moment)
+    expiries = live_expiries(store, symbol, moment)
     excluded = (
         excluded_legs if excluded_legs is not None else _violating_legs(store, symbol, expiries, moment)
     )
@@ -196,11 +195,11 @@ def build_term_structure(
 
     See ``build_skew`` for ``excluded_legs``.
     """
-    moment = _latest_moment(store)
+    moment = _latest_moment(store, symbol)
     if moment is None:
         return []
 
-    expiries = _live_expiries(store, symbol, moment)
+    expiries = live_expiries(store, symbol, moment)
     excluded = (
         excluded_legs if excluded_legs is not None else _violating_legs(store, symbol, expiries, moment)
     )
@@ -223,3 +222,64 @@ def build_term_structure(
             TermStructureCurve(strike=strike, option_type=option_type, status=status, points=tuple(points))
         )
     return curves
+
+
+@dataclass(frozen=True)
+class ViolationRow:
+    """One leg of one recorded violation (R21), flattened for direct display.
+
+    A put-call-band violation names two legs and a butterfly names three;
+    each gets its own row here rather than one row per violation, so R21's
+    table can show "strike, expiry, contract side" per leg the way the plan
+    asks rather than a caller re-deriving that from ``Violation.legs`` itself.
+    """
+
+    expiry: date
+    strike: float
+    option_type: str
+    contract_symbol: str
+    kind: str
+    detail: str
+
+
+def build_violations(store: Store, symbol: str) -> list[ViolationRow]:
+    """Every no-arbitrage violation on the symbol's live surface, one row per leg (R21).
+
+    Reruns the same reconstruction and ``find_violations`` call
+    ``_violating_legs`` makes to compute what ``build_skew``/
+    ``build_term_structure`` exclude — this is that computation's other
+    half, the one that shows what was excluded and why instead of quietly
+    dropping it.
+    """
+    moment = _latest_moment(store, symbol)
+    if moment is None:
+        return []
+
+    expiries = live_expiries(store, symbol, moment)
+    chains = [
+        chain
+        for chain in (_reconstruct_chain(store, symbol, expiry, moment) for expiry in expiries)
+        if chain is not None
+    ]
+    quotes_by_symbol = {
+        quote.contract_symbol: (quote, chain.expiry) for chain in chains for quote in chain.quotes
+    }
+
+    rows = []
+    for violation in find_violations(chains):
+        for leg in violation.legs:
+            match = quotes_by_symbol.get(leg)
+            if match is None:
+                continue
+            quote, expiry = match
+            rows.append(
+                ViolationRow(
+                    expiry=expiry,
+                    strike=quote.strike,
+                    option_type=quote.option_type,
+                    contract_symbol=leg,
+                    kind=violation.kind,
+                    detail=violation.detail,
+                )
+            )
+    return sorted(rows, key=lambda r: (r.expiry, r.strike, r.option_type))

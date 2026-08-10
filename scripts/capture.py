@@ -56,17 +56,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from marketdata import Store, YFinanceAdapter  # noqa: E402
+from marketdata import TRACKED, Store, YFinanceAdapter  # noqa: E402
 from marketdata.capture import fallback_trigger_state, run_capture  # noqa: E402
 from marketdata.derive import derive_batch, needs_rebuild, rebuild  # noqa: E402
-
-#: Provisional, and deliberately the same six the spike measures — a tracked
-#: set that drifts from the set being validated makes the spike's numbers
-#: describe something other than what is being captured. U2 narrows this to the
-#: plan's three-to-six once enough daily observations have accumulated; until
-#: then, capturing all six costs one request per symbol more and keeps the
-#: choice open, which is the cheaper mistake while history is unrecoverable.
-TRACKED = ("SPY", "QQQ", "IWM", "AAPL", "MSFT", "NVDA")
 
 DEFAULT_DB = Path(__file__).parent.parent / "data" / "quotes.db"
 DEFAULT_EXPIRIES = 4

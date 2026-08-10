@@ -649,6 +649,40 @@ class Store:
             rows = conn.execute("SELECT DISTINCT symbol, expiry FROM snapshots ORDER BY symbol, expiry")
             return [(r["symbol"], date.fromisoformat(r["expiry"])) for r in rows]
 
+    def latest_capture(self, symbol: str) -> datetime | None:
+        """When this symbol was last captured, for R33's capture-timestamp display.
+
+        ``None`` on a tracked symbol never yet captured -- distinct from a
+        real timestamp, which a caller must not fabricate.
+        """
+        with closing(self.connect()) as conn:
+            row = conn.execute(
+                "SELECT MAX(captured_at) AS last FROM snapshots WHERE symbol = ?", (symbol,)
+            ).fetchone()
+            return datetime.fromisoformat(row["last"]) if row["last"] else None
+
+    def capture_moments(self, symbol: str) -> list[tuple[date, datetime]]:
+        """One ``(as_of, captured_at)`` pair per day this symbol was captured, oldest first.
+
+        Grouped by ``as_of`` day rather than returned per snapshot row: a
+        symbol captured more than once on the same calendar day (a backfill
+        run alongside the scheduled one, say) would otherwise contribute more
+        than one point on the same day, which a day-keyed series like
+        ``analytics.realized.realized_volatility_series`` has no way to align
+        against. The later ``captured_at`` wins when a day has more than one.
+        """
+        with closing(self.connect()) as conn:
+            rows = conn.execute(
+                """SELECT as_of, MAX(captured_at) AS captured_at
+                   FROM snapshots WHERE symbol = ?
+                   GROUP BY as_of ORDER BY as_of""",
+                (symbol,),
+            )
+            return [
+                (date.fromisoformat(r["as_of"]), datetime.fromisoformat(r["captured_at"]))
+                for r in rows
+            ]
+
     def derived_as_of(
         self, symbol: str, expiry: date, moment: datetime, engine_version: int
     ) -> list[sqlite3.Row]:

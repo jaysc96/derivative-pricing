@@ -30,10 +30,12 @@ from .adapter import (
 )
 from .secrets import MissingCredential, get_secret, load_dotenv
 from .store import FAILURE_REASONS, SchemaMismatch, Store
+from .tracked import TRACKED
 from .yfinance_adapter import YFinanceAdapter
 
 __all__ = [
     "FAILURE_REASONS",
+    "TRACKED",
     "ChainSnapshot",
     "MalformedResponse",
     "MarketDataAdapter",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AnalyticsView from "./analytics/AnalyticsView";
 import { METHOD_LABELS, fieldsForMethod, methodAfterExerciseChange, methodsForExercise } from "./methodRules";
 import { priceOption } from "./api";
 
@@ -35,6 +36,7 @@ function defaultFieldState() {
 }
 
 export default function App() {
+  const [view, setView] = useState("calculator");
   const [exerciseType, setExerciseType] = useState("european");
   const [optionType, setOptionType] = useState("call");
   const [method, setMethod] = useState("BSM");
@@ -84,6 +86,31 @@ export default function App() {
         <h1 className="mb-5">Option Pricing Calculator</h1>
       </header>
 
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${view === "calculator" ? "active" : ""}`}
+            onClick={() => setView("calculator")}
+          >
+            Calculator
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            type="button"
+            className={`nav-link ${view === "analytics" ? "active" : ""}`}
+            onClick={() => setView("analytics")}
+          >
+            Analytics
+          </button>
+        </li>
+      </ul>
+
+      {view === "analytics" && <AnalyticsView />}
+
+      {view === "calculator" && (
+      <>
       <form onSubmit={handleSubmit}>
         <fieldset disabled={pending}>
         <div className="row">
@@ -258,6 +285,8 @@ export default function App() {
             </table>
           </div>
         </div>
+      )}
+      </>
       )}
 
       <footer className="text-center p-3 mt-5">

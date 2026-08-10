@@ -435,6 +435,56 @@ def test_raw_coverage_narrows_to_one_chain(store):
 
 
 # --------------------------------------------------------------------------
+# Analytics reads: latest capture and per-day capture moments (U18)
+# --------------------------------------------------------------------------
+
+
+def test_latest_capture_is_none_before_any_capture(store):
+    assert store.latest_capture("SPY") is None
+
+
+def test_latest_capture_returns_the_most_recent_captured_at(store):
+    store.write_snapshot(snapshot(quote(), captured_at=T0))
+    store.write_snapshot(snapshot(quote(bid=13.0, ask=13.4), captured_at=T0 + timedelta(hours=1)))
+
+    assert store.latest_capture("SPY") == T0 + timedelta(hours=1)
+
+
+def test_latest_capture_is_scoped_to_one_symbol(store):
+    """A later capture of a different symbol must not shadow this one's own timestamp."""
+    store.write_snapshot(snapshot(quote(), captured_at=T0))
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="yfinance", symbol="QQQ", expiry=EXPIRY, captured_at=T0 + timedelta(hours=1),
+            as_of=T0.date(), origin="live", underlying_price=400.0,
+            quotes=(quote("C00600000Q", bid=1.0, ask=1.1),),
+        )
+    )
+
+    assert store.latest_capture("SPY") == T0
+
+
+def test_capture_moments_is_empty_before_any_capture(store):
+    assert store.capture_moments("SPY") == []
+
+
+def test_capture_moments_returns_one_pair_per_day_oldest_first(store):
+    day1, day2 = T0, T0 + timedelta(days=1)
+    store.write_snapshot(snapshot(quote(), captured_at=day2, as_of=day2.date()))
+    store.write_snapshot(snapshot(quote(bid=13.0, ask=13.4), captured_at=day1, as_of=day1.date()))
+
+    assert store.capture_moments("SPY") == [(day1.date(), day1), (day2.date(), day2)]
+
+
+def test_capture_moments_collapses_same_day_captures_to_the_later_one(store):
+    morning, afternoon = T0, T0 + timedelta(hours=4)
+    store.write_snapshot(snapshot(quote(), captured_at=morning, as_of=morning.date()))
+    store.write_snapshot(snapshot(quote(bid=13.0, ask=13.4), captured_at=afternoon, as_of=morning.date()))
+
+    assert store.capture_moments("SPY") == [(morning.date(), afternoon)]
+
+
+# --------------------------------------------------------------------------
 # The capture record
 # --------------------------------------------------------------------------
 

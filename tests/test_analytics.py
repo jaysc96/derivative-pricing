@@ -18,8 +18,10 @@ from analytics.surface import (
     _reconstruct_chain,
     build_skew,
     build_term_structure,
+    build_violations,
 )
 from marketdata import ChainSnapshot, QuoteRecord, Store, UnderlyingBar
+from marketdata.checks import PUT_CALL_BAND
 from marketdata.derive import derive_batch
 from pricing.american import American_Option
 
@@ -250,6 +252,49 @@ def test_quotes_rejected_by_u16_are_absent_from_the_surface(store):
     strikes_in_surface = [pt.strike for pt in curves[0].points]
     assert strikes_in_surface == [90.0, 100.0, 110.0]
     assert 120.0 not in strikes_in_surface
+
+
+# --------------------------------------------------------------------------
+# build_violations: what U16 excluded, shown rather than dropped (R21)
+# --------------------------------------------------------------------------
+
+
+def test_an_excluded_leg_is_visible_through_build_violations(store):
+    good_strikes = [(90.0, 0.20), (100.0, 0.25), (110.0, 0.30)]
+    quotes = [
+        quote(f"C{strike:.0f}", strike, price(strike, sig, NEAR) - 0.01, price(strike, sig, NEAR) + 0.01)
+        for strike, sig in good_strikes
+    ]
+    quotes.append(quote("C120", 120.0, 0.10, 0.20))
+    quotes.append(quote("P120", 120.0, 30.0, 30.5, option_type="put"))
+
+    store.write_snapshot(snapshot(NEAR, quotes))
+    derive_batch(store)
+
+    rows = build_violations(store, "TEST")
+    assert {r.contract_symbol for r in rows} == {"C120", "P120"}
+    assert all(r.kind == PUT_CALL_BAND for r in rows)
+    assert all(r.expiry == NEAR for r in rows)
+    call_row = next(r for r in rows if r.contract_symbol == "C120")
+    assert call_row.strike == 120.0
+    assert call_row.option_type == "call"
+    assert "lower bound" in call_row.detail
+
+
+def test_a_clean_surface_has_no_violations(store):
+    good_strikes = [(90.0, 0.20), (100.0, 0.25), (110.0, 0.30)]
+    quotes = [
+        quote(f"C{strike:.0f}", strike, price(strike, sig, NEAR) - 0.01, price(strike, sig, NEAR) + 0.01)
+        for strike, sig in good_strikes
+    ]
+    store.write_snapshot(snapshot(NEAR, quotes))
+    derive_batch(store)
+
+    assert build_violations(store, "TEST") == []
+
+
+def test_build_violations_returns_nothing_before_any_capture(store):
+    assert build_violations(store, "TEST") == []
 
 
 # --------------------------------------------------------------------------
