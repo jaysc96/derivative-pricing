@@ -336,6 +336,32 @@ def test_a_failed_rate_fetch_does_not_cost_the_chain(store):
     assert row["dividend_yield"] == pytest.approx(0.02), "the yield fetch is independent"
 
 
+def test_a_failed_rate_fetch_marks_the_outcome_degraded(store):
+    """Productive and short of what it set out to collect is not the same as
+    healthy — a chain captured in full but missing a real market-context
+    fetch is degraded the same way a partially-captured expiry set is."""
+    adapter = FakeAdapter(rate_error=RateLimited("429"))
+    outcome = capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.market_context is False
+    assert outcome.degraded is True
+
+
+def test_a_successful_rate_fetch_that_returns_none_is_not_degraded(store):
+    """None because the provider had nothing to report is not the same
+    failure as None because the fetch itself errored — only the latter
+    should cost the outcome its market_context."""
+    class NoRate(FakeAdapter):
+        def risk_free_rate(self, as_of=None):
+            self.rate_calls += 1
+            return None
+
+    outcome = capture_symbol(NoRate(), store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.market_context is True
+    assert outcome.degraded is False
+
+
 def test_a_failed_yield_fetch_does_not_cost_the_rate(store):
     adapter = FakeAdapter(yield_error=RateLimited("429"))
     capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
@@ -343,6 +369,40 @@ def test_a_failed_yield_fetch_does_not_cost_the_rate(store):
     row = store.chain_as_of("SPY", NEAR, NOW + timedelta(minutes=1))[0]
     assert row["risk_free_rate"] == pytest.approx(0.05)
     assert row["dividend_yield"] is None
+
+
+def test_a_failed_yield_fetch_also_marks_the_outcome_degraded(store):
+    adapter = FakeAdapter(yield_error=RateLimited("429"))
+    outcome = capture_symbol(adapter, store, "SPY", sleep=no_sleep, today=NOW.date())
+
+    assert outcome.market_context is False
+    assert outcome.degraded is True
+
+
+def test_run_capture_fetches_the_rate_once_for_the_whole_tracked_set(store):
+    """Three symbols, one rate call — not three. The rate is market-wide, so
+    run_capture fetches it once and passes it to every capture_symbol call
+    rather than paying a full retry-and-backoff sequence per symbol."""
+    adapter = FakeAdapter()
+    run_capture(adapter, store, ("SPY", "QQQ", "IWM"), sleep=no_sleep, now=NOW)
+
+    assert adapter.rate_calls == 1
+    assert adapter.yield_calls == 3, "the yield is symbol-specific and stays per-symbol"
+
+
+def test_run_captures_rate_level_failure_still_reaches_every_symbol(store):
+    """A market-wide rate fetch failing must not abort the run — every symbol
+    still gets its own chain captured, each degraded by the same shared
+    failure rather than the whole batch being lost. The rate fetch itself
+    still exhausts its own retry budget once (three attempts, the module
+    default) rather than once per symbol — a real reduction from the
+    pre-fix behaviour of three attempts multiplied by every tracked symbol."""
+    adapter = FakeAdapter(rate_error=RateLimited("429"))
+    result = run_capture(adapter, store, ("SPY", "QQQ"), sleep=no_sleep, now=NOW)
+
+    assert adapter.rate_calls == 3, "one exhausted retry sequence, not one per symbol"
+    assert [o.symbol for o in result.outcomes] == ["SPY", "QQQ"]
+    assert all(o.productive and o.degraded for o in result.outcomes)
 
 
 def test_underlying_bars_are_fetched_once_per_symbol_not_per_expiry(store):

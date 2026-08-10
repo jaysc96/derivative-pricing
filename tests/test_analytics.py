@@ -7,7 +7,6 @@ what is proven is that a real captured chain produces the right shape end to
 end, including U16's exclusion (R21).
 """
 
-import math
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
@@ -16,6 +15,7 @@ from analytics.realized import realized_volatility, realized_volatility_series
 from analytics.surface import (
     INSUFFICIENT_DATA,
     OK,
+    _reconstruct_chain,
     build_skew,
     build_term_structure,
 )
@@ -138,6 +138,95 @@ def test_a_strike_with_too_few_expiries_reports_insufficient_data_for_term_struc
 
 
 # --------------------------------------------------------------------------
+# Expired expiries do not reach the surface or contaminate the violation scan
+# --------------------------------------------------------------------------
+
+
+def test_an_expiry_already_settled_as_of_the_latest_capture_is_absent_from_skew(store):
+    """`symbols_and_expiries` returns every expiry ever captured, including
+    ones that had already expired by the time this snapshot was taken.
+    Rendering one as a current skew curve would show a contract nobody can
+    trade any longer as though it were live."""
+    settled = date(2026, 1, 15)  # before T0's date (2026-08-06)
+    p = price(100.0, 0.25, NEAR)
+    store.write_snapshot(
+        snapshot(settled, [quote("C100_settled", 100.0, p - 0.01, p + 0.01)])
+    )
+    store.write_snapshot(
+        snapshot(NEAR, [quote(f"C{s:.0f}", s, price(s, v, NEAR) - 0.01, price(s, v, NEAR) + 0.01)
+                         for s, v in [(90.0, 0.20), (100.0, 0.25), (110.0, 0.30)]])
+    )
+    derive_batch(store)
+
+    curves = build_skew(store, "TEST")
+    assert [c.expiry for c in curves] == [NEAR]
+
+
+def test_a_settled_expiry_does_not_contaminate_the_violation_scan_for_a_live_one(store):
+    """A settled expiry's own contracts have real bid/ask that could pair with
+    a live expiry's in a calendar check if both were fed to `find_violations`
+    together -- excluding it before that scan runs, not just before display,
+    is what `_live_expiries` guarantees."""
+    settled = date(2026, 1, 15)
+    good_strikes = [(90.0, 0.20), (100.0, 0.25), (110.0, 0.30)]
+    live_quotes = [
+        quote(f"C{s:.0f}", s, price(s, v, NEAR) - 0.01, price(s, v, NEAR) + 0.01)
+        for s, v in good_strikes
+    ]
+    store.write_snapshot(
+        # A deliberately rich quote on the settled expiry -- if it were fed
+        # into the calendar check alongside NEAR's cheaper near-dated quotes,
+        # `near_bid > far_ask` could misfire depending on ordering.
+        snapshot(settled, [quote("C100_settled", 100.0, 500.0, 500.5)])
+    )
+    store.write_snapshot(snapshot(NEAR, live_quotes))
+    derive_batch(store)
+
+    curves = build_skew(store, "TEST")
+    assert len(curves) == 1
+    assert curves[0].status == OK
+    assert [pt.strike for pt in curves[0].points] == [90.0, 100.0, 110.0]
+
+
+# --------------------------------------------------------------------------
+# Chain reconstruction uses the most recently observed row
+# --------------------------------------------------------------------------
+
+
+def test_chain_reconstruction_uses_the_most_recently_observed_snapshot_context(store):
+    """Two captures of the same chain, at different times, carry different
+    underlying prices. The reconstructed chain's spot must come from the
+    later capture -- not from whichever row the query happens to return
+    first, which the store gives no ordering guarantee on."""
+    earlier = quote("C100", 100.0, 9.0, 9.2, traded=T0 - timedelta(hours=2))
+    later_time = T0 + timedelta(hours=1)
+    later = QuoteRecord(
+        contract_symbol="C100", option_type="call", strike=100.0,
+        bid=9.5, ask=9.7, last=9.6, volume=10, open_interest=20,
+        provider_iv=0.2, last_trade_at=later_time,
+    )
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="fake", symbol="TEST", expiry=NEAR, captured_at=T0,
+            as_of=T0.date(), origin="live", underlying_price=100.0,
+            quotes=(earlier,), risk_free_rate=0.05, dividend_yield=0.02,
+        )
+    )
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="fake", symbol="TEST", expiry=NEAR, captured_at=later_time,
+            as_of=later_time.date(), origin="live", underlying_price=104.0,
+            quotes=(later,), risk_free_rate=0.06, dividend_yield=0.03,
+        )
+    )
+
+    chain = _reconstruct_chain(store, "TEST", NEAR, later_time + timedelta(minutes=1))
+    assert chain.underlying_price == pytest.approx(104.0)
+    assert chain.risk_free_rate == pytest.approx(0.06)
+    assert chain.dividend_yield == pytest.approx(0.03)
+
+
+# --------------------------------------------------------------------------
 # R21: a U16 violation never reaches the surface
 # --------------------------------------------------------------------------
 
@@ -169,12 +258,17 @@ def test_quotes_rejected_by_u16_are_absent_from_the_surface(store):
 
 
 def test_realized_volatility_matches_a_hand_computed_value():
+    """The expected figure is a literal, not a formula run alongside
+    ``analytics.realized``'s own — a hand-rolled re-derivation here would
+    share any bug the production formula has (an off-by-one in the sample
+    variance's denominator, for instance) and could never catch it. Computed
+    once, independently, via three routes that agree to float precision:
+    ``numpy.std(log_returns, ddof=1)``, ``statistics.stdev(log_returns)``,
+    and the manual sum-of-squares formula — all times ``sqrt(252)``, on the
+    fixed closes series below.
+    """
     closes = [100.0, 102.0, 101.0, 105.0, 103.0]
-
-    log_returns = [math.log(closes[i] / closes[i - 1]) for i in range(1, len(closes))]
-    mean = sum(log_returns) / len(log_returns)
-    variance = sum((r - mean) ** 2 for r in log_returns) / (len(log_returns) - 1)
-    expected = math.sqrt(variance) * math.sqrt(252)
+    expected = 0.4248874656319516
 
     assert realized_volatility(closes) == pytest.approx(expected)
 

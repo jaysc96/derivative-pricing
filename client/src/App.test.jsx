@@ -126,6 +126,27 @@ describe("the pending state", () => {
     await waitFor(() => expect(submit).not.toBeDisabled());
     expect(screen.queryByTestId("pending-indicator")).not.toBeInTheDocument();
   });
+
+  it("locks every field, not just submit, for the whole in-flight window", async () => {
+    let resolvePrice;
+    priceOption.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePrice = resolve;
+      }),
+    );
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("button", { name: /calculate price/i }));
+
+    expect(methodSelect()).toBeDisabled();
+    expect(screen.getByLabelText("Stock Price (S):")).toBeDisabled();
+    expect(screen.getByLabelText("American")).toBeDisabled();
+
+    resolvePrice({ price: 10, delta: 0.5, gamma: 0.1, theta: -0.05, vega: 0.2, rho: 0.1 });
+
+    await waitFor(() => expect(methodSelect()).not.toBeDisabled());
+    expect(screen.getByLabelText("Stock Price (S):")).not.toBeDisabled();
+  });
 });
 
 // --------------------------------------------------------------------------
@@ -174,5 +195,17 @@ describe("results", () => {
     const call = priceOption.mock.calls.at(-1)[0];
     expect(call.method).toBe("LSMC");
     expect(call.exercise_type).toBe("american");
+  });
+
+  it("renders N/A rather than crashing on a null Greek", async () => {
+    // The server returns null (never a bare NaN token) for a Greek that
+    // couldn't be estimated at the edge of a method's numerical domain.
+    priceOption.mockResolvedValue({ price: 5.0, delta: null, gamma: 0.01, theta: -0.02, vega: 0.3, rho: 0.15 });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("button", { name: /calculate price/i }));
+
+    expect(await screen.findByText("5.000")).toBeInTheDocument();
+    expect(screen.getByText("N/A")).toBeInTheDocument();
   });
 });

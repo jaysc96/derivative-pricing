@@ -17,6 +17,8 @@ from pathlib import Path
 import pytest
 
 from marketdata import ChainSnapshot, QuoteRecord, RateLimited, Store
+from marketdata.derive import derive_batch
+from pricing import ENGINE_VERSION
 
 REPO = Path(__file__).parent.parent
 
@@ -84,6 +86,12 @@ def no_sleep(_seconds):
 
 def run(store, argv=(), **kwargs):
     kwargs.setdefault("sleep", no_sleep)
+    # Pinned rather than left to wall-clock time: NEAR (2026-12-18) is chosen
+    # to stay past the skip-expiry-day filter relative to this fixed NOW, not
+    # relative to whatever real date the suite happens to run on -- without
+    # this, the fixture silently stops testing what it claims to the moment
+    # real time passes NEAR.
+    kwargs.setdefault("now", NOW)
     return capture_script.main(list(argv), store=store, **kwargs)
 
 
@@ -115,9 +123,9 @@ def test_a_fired_trigger_outranks_a_single_bad_run(store):
     A scheduler that sees only 1 cannot tell "retry tomorrow" from "this
     provider is finished", so the escalation gets its own status.
     """
-    for day in range(3):
+    for days_ago in (3, 2, 1):
         capture_script.main(
-            ["--symbols", "SPY"], store=store, sleep=no_sleep,
+            ["--symbols", "SPY"], store=store, sleep=no_sleep, now=NOW - timedelta(days=days_ago),
             adapter=FakeAdapter(error=RateLimited("429")),
         )
     code = run(store, ["--symbols", "SPY"], adapter=FakeAdapter(error=RateLimited("429")))
@@ -154,9 +162,9 @@ def test_status_on_an_empty_archive_does_not_fail(store, capsys):
 
 
 def test_status_surfaces_a_fired_trigger(store, capsys):
-    for _ in range(3):
+    for days_ago in (3, 2, 1):
         capture_script.main(
-            ["--symbols", "SPY"], store=store, sleep=no_sleep,
+            ["--symbols", "SPY"], store=store, sleep=no_sleep, now=NOW - timedelta(days=days_ago),
             adapter=FakeAdapter(error=RateLimited("429")),
         )
     code = run(store, ["--status"])
@@ -215,6 +223,41 @@ def test_a_degraded_symbol_says_so(store, capsys):
 
     assert code == 0, "one good expiry is still history worth keeping"
     assert "degraded" in output and "1/3 expiries" in output
+
+
+# --------------------------------------------------------------------------
+# Derivation: incremental by default, wholesale on a stale engine version
+# --------------------------------------------------------------------------
+
+
+def test_a_stale_derived_version_triggers_a_rebuild_not_a_silent_backlog(store, capsys):
+    """A derived table left at an old engine version must be rebuilt through
+    the named path, not picked up as an ordinary-looking incremental batch
+    that happens to be unusually large."""
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="fake", symbol="SPY", expiry=NEAR, captured_at=NOW - timedelta(days=1),
+            as_of=(NOW - timedelta(days=1)).date(), origin="live", underlying_price=604.0,
+            quotes=(quote(),), risk_free_rate=0.05, dividend_yield=0.02,
+        )
+    )
+    stale_version = ENGINE_VERSION - 1
+    derive_batch(store, engine_version=stale_version)  # simulates a prior run's engine version
+
+    code = run(store, ["--symbols", "SPY"], adapter=FakeAdapter())
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "rebuilt from raw quotes" in output
+
+
+def test_an_ordinary_run_derives_incrementally_not_as_a_rebuild(store, capsys):
+    code = run(store, ["--symbols", "SPY"], adapter=FakeAdapter())
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "rebuilt from raw quotes" not in output
+    assert "quote(s) derived" in output
 
 
 # --------------------------------------------------------------------------

@@ -69,6 +69,14 @@ class SymbolOutcome:
     reason: str | None = None
     expiries: int = 0
     expiries_requested: int = 0
+    #: False when the rate or dividend-yield fetch itself failed (a
+    #: classified provider error, not "the provider had none to report") —
+    #: distinct from either being ``None`` for a legitimate reason. Every
+    #: quote captured this run derives to ``NO_MARKET_CONTEXT`` regardless
+    #: of which, but only this flag tells an operator reading the run
+    #: record whether that gap came from a real fetch failure worth
+    #: investigating.
+    market_context: bool = True
 
     @property
     def degraded(self) -> bool:
@@ -77,9 +85,12 @@ class SymbolOutcome:
         Distinct from unproductive. A degraded run still advanced history, so
         suppressing it would be wrong; treating it as an unqualified success
         would hide a provider that has started refusing most of what we ask
-        for while still answering enough to look alive.
+        for while still answering enough to look alive. A chain captured in
+        full but missing its rate or yield to a real fetch failure is the
+        same shape of shortfall as a missing expiry — advanced history, but
+        less of it than the run set out to collect.
         """
-        return self.productive and self.expiries < self.expiries_requested
+        return self.productive and (self.expiries < self.expiries_requested or not self.market_context)
 
 
 @dataclass
@@ -139,11 +150,21 @@ def _with_backoff(call, *, max_attempts: int, backoff: float, sleep=time.sleep):
     return None, last_reason
 
 
+#: Distinguishes "the caller did not supply a rate" from "the caller supplied
+#: None because that is what the run-level fetch returned" — a plain
+#: ``None`` default cannot tell those apart, and conflating them would make
+#: every direct call to ``capture_symbol`` (every test in this module makes
+#: one) silently skip its own rate fetch.
+_RATE_NOT_SUPPLIED = object()
+
+
 def capture_symbol(
     adapter,
     store: Store,
     symbol: str,
     *,
+    rate=_RATE_NOT_SUPPLIED,
+    rate_failed: bool = False,
     expiries_per_symbol: int = DEFAULT_EXPIRIES_PER_SYMBOL,
     skip_expiry_day: bool = True,
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
@@ -171,19 +192,27 @@ def capture_symbol(
     if skip_expiry_day:
         expiries = tuple(e for e in expiries if e > reference)
 
-    # Fetched once per symbol, not once per expiry — the rate is market-wide
-    # and the yield barely moves within a run, so re-fetching per expiry would
-    # be four times the network cost for a figure that has not changed. A
-    # fetch failure degrades to None rather than failing the capture: the
-    # chain is the irreplaceable half, and the derived layer is what declines
-    # to invert a snapshot missing either, with its own explicit reason.
-    rate, _ = _with_backoff(
-        lambda: adapter.risk_free_rate(), max_attempts=max_attempts, backoff=backoff, sleep=sleep
-    )
-    dividend_yield, _ = _with_backoff(
+    # The rate is market-wide, not symbol-specific — run_capture fetches it
+    # once for the whole tracked set and passes it down, rather than paying
+    # a full retry-and-backoff sequence per symbol for a figure that is the
+    # same for every one of them. A direct call to capture_symbol (every
+    # test in this module makes one) that does not supply `rate` fetches its
+    # own, so this function stays usable on its own. The yield does vary per
+    # symbol and is always fetched here. A fetch failure degrades to None
+    # rather than failing the capture: the chain is the irreplaceable half,
+    # and the derived layer is what declines to invert a snapshot missing
+    # either, with its own explicit reason — market_context on the outcome
+    # below is what keeps that failure visible at the run-record level too.
+    if rate is _RATE_NOT_SUPPLIED:
+        rate, rate_reason = _with_backoff(
+            lambda: adapter.risk_free_rate(), max_attempts=max_attempts, backoff=backoff, sleep=sleep
+        )
+        rate_failed = rate_reason is not None
+    dividend_yield, yield_reason = _with_backoff(
         lambda: adapter.dividend_yield(symbol),
         max_attempts=max_attempts, backoff=backoff, sleep=sleep,
     )
+    market_context = not (rate_failed or yield_reason is not None)
 
     # Underlying daily bars, for analytics.realized (U17). A fetch failure
     # here costs a day of realized-volatility history, never the chain
@@ -225,6 +254,7 @@ def capture_symbol(
             reason=last_reason or "empty_response",
             expiries=captured_expiries,
             expiries_requested=len(wanted),
+            market_context=market_context,
         )
     if two_sided == 0:
         # Quotes arrived and none of them is usable. Stored, because the raw
@@ -237,6 +267,7 @@ def capture_symbol(
             reason="all_zero_sided",
             expiries=captured_expiries,
             expiries_requested=len(wanted),
+            market_context=market_context,
         )
     return SymbolOutcome(
         symbol=symbol,
@@ -245,6 +276,7 @@ def capture_symbol(
         two_sided=two_sided,
         expiries=captured_expiries,
         expiries_requested=len(wanted),
+        market_context=market_context,
     )
 
 
@@ -264,11 +296,23 @@ def run_capture(
     started_at = now or datetime.now(timezone.utc)
     result = CaptureResult(started_at=started_at, provider=adapter.name)
 
+    # Fetched once for the whole run, not once per symbol — the rate is
+    # market-wide, so a tracked set of N symbols previously paid N full
+    # retry-and-backoff sequences for a figure that does not vary between
+    # them, multiplying both network cost and the time spent retrying a
+    # struggling proxy by N for no benefit.
+    rate, rate_reason = _with_backoff(
+        lambda: adapter.risk_free_rate(), max_attempts=max_attempts, backoff=backoff, sleep=sleep
+    )
+    rate_failed = rate_reason is not None
+
     for symbol in symbols:
         outcome = capture_symbol(
             adapter,
             store,
             symbol,
+            rate=rate,
+            rate_failed=rate_failed,
             expiries_per_symbol=expiries_per_symbol,
             skip_expiry_day=skip_expiry_day,
             max_attempts=max_attempts,

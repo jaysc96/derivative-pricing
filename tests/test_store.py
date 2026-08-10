@@ -274,7 +274,9 @@ def test_a_backfill_does_not_displace_the_live_history_it_precedes(store):
 
 
 def test_a_database_from_an_older_schema_is_refused_by_name(tmp_path):
-    """There is no migration path (KTD7), so silence would be the wrong answer."""
+    """There is no migration path (KTD7) for a non-additive delta, so silence
+    would be the wrong answer. Version 1 predates observed_at and changed
+    quotes' own UNIQUE constraint -- not a delta `_ADDITIVE_COLUMNS` covers."""
     import sqlite3
 
     from marketdata.store import SchemaMismatch
@@ -286,6 +288,108 @@ def test_a_database_from_an_older_schema_is_refused_by_name(tmp_path):
 
     with pytest.raises(SchemaMismatch, match="schema version 1"):
         Store(path)
+
+
+def test_a_database_from_a_newer_schema_is_refused_not_silently_downgraded(tmp_path):
+    """A rollback to older code against an already-migrated database must
+    hard-fail rather than guess at a downgrade path nothing here writes."""
+    import sqlite3
+
+    from marketdata.store import SchemaMismatch
+
+    path = tmp_path / "future.db"
+    Store(path)
+    with sqlite3.connect(path) as conn:
+        conn.execute("PRAGMA user_version = 99")
+
+    with pytest.raises(SchemaMismatch, match="schema version 99"):
+        Store(path)
+
+
+_V2_SCHEMA = """
+CREATE TABLE snapshots (
+    id INTEGER PRIMARY KEY, provider TEXT NOT NULL, symbol TEXT NOT NULL,
+    expiry TEXT NOT NULL, captured_at TEXT NOT NULL, as_of TEXT NOT NULL,
+    origin TEXT NOT NULL CHECK (origin IN ('live', 'backfill')), underlying_price REAL
+);
+CREATE TABLE quotes (
+    id INTEGER PRIMARY KEY, snapshot_id INTEGER NOT NULL REFERENCES snapshots (id),
+    contract_symbol TEXT NOT NULL, option_type TEXT NOT NULL CHECK (option_type IN ('call', 'put')),
+    strike REAL NOT NULL, bid REAL, ask REAL, last REAL, volume INTEGER,
+    open_interest INTEGER, provider_iv REAL, last_trade_at TEXT, observed_at TEXT NOT NULL,
+    UNIQUE (contract_symbol, observed_at)
+);
+CREATE TABLE capture_runs (
+    id INTEGER PRIMARY KEY, started_at TEXT NOT NULL, provider TEXT NOT NULL, symbol TEXT NOT NULL,
+    productive INTEGER NOT NULL, reason TEXT, contracts INTEGER NOT NULL DEFAULT 0,
+    expiries_requested INTEGER NOT NULL DEFAULT 0, expiries_captured INTEGER NOT NULL DEFAULT 0,
+    two_sided INTEGER NOT NULL DEFAULT 0
+);
+"""
+
+
+def _seed_v2_database(path):
+    """A real schema-version-2 shape (9d0d33d's, pre risk_free_rate /
+    dividend_yield / implied_vols) with one snapshot and one quote in it."""
+    import sqlite3
+
+    conn = sqlite3.connect(path)
+    conn.executescript(_V2_SCHEMA)
+    conn.execute("PRAGMA user_version = 2")
+    conn.execute(
+        "INSERT INTO snapshots (provider, symbol, expiry, captured_at, as_of, origin, underlying_price) "
+        "VALUES ('fake','SPY','2026-09-18','2026-08-01T00:00:00','2026-08-01','live', 604.0)"
+    )
+    conn.execute(
+        "INSERT INTO quotes (snapshot_id, contract_symbol, option_type, strike, bid, ask, observed_at) "
+        "VALUES (1, 'SPYC600', 'call', 600.0, 12.5, 12.9, '2026-08-01T00:00:00')"
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_a_version_2_database_is_upgraded_in_place_rather_than_refused(tmp_path):
+    """The 2->3 delta is purely additive (two nullable snapshot columns, one
+    new table) -- opening it must add what is missing and keep every row,
+    not force a delete-and-recapture of an archive that needed no rebuild."""
+    import sqlite3
+
+    path = tmp_path / "v2.db"
+    _seed_v2_database(path)
+
+    store = Store(path)
+
+    assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == 3
+    rows = list(store.connect().execute("SELECT * FROM snapshots"))
+    assert len(rows) == 1
+    assert rows[0]["symbol"] == "SPY"
+    assert rows[0]["risk_free_rate"] is None, "new column exists, old row's value is honestly unknown"
+    quotes = list(store.connect().execute("SELECT * FROM quotes"))
+    assert len(quotes) == 1
+    assert quotes[0]["contract_symbol"] == "SPYC600"
+    tables = {r[0] for r in store.connect().execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "implied_vols" in tables
+
+
+def test_a_version_2_upgrade_is_safe_to_retry_after_a_partial_run(tmp_path):
+    """ALTER TABLE commits immediately in SQLite's autocommit mode, ahead of
+    this method's own version-bump commit -- a crash in between would leave
+    a column already added but user_version still at 2. The next open must
+    not crash on "duplicate column"."""
+    import sqlite3
+
+    path = tmp_path / "v2-partial.db"
+    _seed_v2_database(path)
+    with sqlite3.connect(path) as conn:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN risk_free_rate REAL")
+        # dividend_yield deliberately left unadded and user_version left at 2,
+        # simulating a crash partway through the migration.
+
+    store = Store(path)
+
+    assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == 3
+    cols = {r[1] for r in store.connect().execute("PRAGMA table_info(snapshots)")}
+    assert {"risk_free_rate", "dividend_yield"} <= cols
 
 
 def test_coverage_counts_two_sided_quotes(store):

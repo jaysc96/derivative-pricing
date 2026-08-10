@@ -85,6 +85,7 @@ export default function App() {
       </header>
 
       <form onSubmit={handleSubmit}>
+        <fieldset disabled={pending}>
         <div className="row">
           <div className="col-md-4 mb-3">
             <label className="form-label text-muted" style={{ fontSize: "0.85rem" }}>
@@ -226,6 +227,7 @@ export default function App() {
             </button>
           </div>
         </div>
+        </fieldset>
       </form>
 
       {error && (
@@ -249,7 +251,7 @@ export default function App() {
               <tbody>
                 <tr>
                   {Object.keys(GREEK_LABELS).map((key) => (
-                    <td key={key}>{result[key].toFixed(3)}</td>
+                    <td key={key}>{result[key] === null ? "N/A" : result[key].toFixed(3)}</td>
                   ))}
                 </tr>
               </tbody>

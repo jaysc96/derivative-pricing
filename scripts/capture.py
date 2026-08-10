@@ -58,7 +58,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from marketdata import Store, YFinanceAdapter  # noqa: E402
 from marketdata.capture import fallback_trigger_state, run_capture  # noqa: E402
-from marketdata.derive import derive_batch  # noqa: E402
+from marketdata.derive import derive_batch, needs_rebuild, rebuild  # noqa: E402
 
 #: Provisional, and deliberately the same six the spike measures — a tracked
 #: set that drifts from the set being validated makes the spike's numbers
@@ -136,12 +136,16 @@ def report_status(store: Store) -> int:
     return EXIT_OK
 
 
-def main(argv=None, *, adapter=None, store=None, sleep=time.sleep) -> int:
-    """``adapter``, ``store`` and ``sleep`` are injected by tests.
+def main(argv=None, *, adapter=None, store=None, sleep=time.sleep, now=None) -> int:
+    """``adapter``, ``store``, ``sleep``, and ``now`` are injected by tests.
 
     No test here reaches the network, and none of them should pay the real
     backoff between retries either — a suite that sleeps for its own retry
-    policy stops being run.
+    policy stops being run. ``now`` exists for the same reason: without it, a
+    test picking a "near" expiry to keep past the skip-expiry-day filter is
+    really picking one relative to whatever day the suite happens to run on,
+    which quietly stops being true once real time catches up to the date the
+    test author had in mind.
     """
     args = build_parser().parse_args(argv)
     store = store or Store(args.db)
@@ -162,6 +166,7 @@ def main(argv=None, *, adapter=None, store=None, sleep=time.sleep) -> int:
         expiries_per_symbol=args.expiries,
         skip_expiry_day=not args.include_expiry_day,
         sleep=sleep,
+        now=now,
     )
 
     for outcome in result.outcomes:
@@ -182,8 +187,18 @@ def main(argv=None, *, adapter=None, store=None, sleep=time.sleep) -> int:
         f"{' — DEGRADED' if result.degraded else ''}"
     )
 
-    derived = derive_batch(store)
-    print(f"{derived:,} quote(s) derived")
+    if needs_rebuild(store):
+        # The derived table holds rows from an engine version this code no
+        # longer runs. Left to derive_batch alone, the very first pending
+        # scan after a version bump would silently inherit the whole
+        # accumulated archive as "pending" -- an unbounded backlog processed
+        # inline inside this cron run rather than as the deliberate,
+        # named rebuild it actually is.
+        derived = rebuild(store)
+        print(f"{derived:,} quote(s) derived (engine version changed; rebuilt from raw quotes)")
+    else:
+        derived = derive_batch(store)
+        print(f"{derived:,} quote(s) derived")
 
     trigger = fallback_trigger_state(store)
     if trigger["triggered"]:

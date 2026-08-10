@@ -224,7 +224,11 @@ class YFinanceAdapter:
             raise classify(exc) from exc
         if value is None:
             return None
-        return clean_rate(value / 100, field="risk_free_rate")
+        try:
+            scaled = value / 100
+        except TypeError as exc:
+            raise MalformedResponse("risk_free_rate is not numeric") from exc
+        return clean_rate(scaled, field="risk_free_rate")
 
     def dividend_yield(self, symbol: str, as_of: date | None = None) -> float | None:
         if as_of is not None:
@@ -277,7 +281,13 @@ class YFinanceAdapter:
 
         bars = []
         for stamp, row in zip(frame.index, frame.to_dict("records")):
-            bar_date = stamp.date() if hasattr(stamp, "date") else date.fromisoformat(str(stamp))
+            if hasattr(stamp, "date"):
+                bar_date = stamp.date()
+            else:
+                try:
+                    bar_date = date.fromisoformat(str(stamp))
+                except ValueError as exc:
+                    raise MalformedResponse("underlying history index holds a non-date value") from exc
             close = clean_price(row.get("Close"), field="Close")
             if close is None:
                 continue

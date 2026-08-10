@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 from marketdata import ChainSnapshot, QuoteRecord, Store
-from marketdata.derive import NO_MARKET_CONTEXT, derive_batch, rebuild
+from marketdata.derive import NO_MARKET_CONTEXT, derive_batch, needs_rebuild, rebuild
 from pricing import ENGINE_VERSION
 from pricing.american import American_Option
 from pricing.implied import NO_QUOTE
@@ -80,6 +80,30 @@ def test_derive_batch_is_incremental(store):
     second = derive_batch(store)
     assert first == 1
     assert second == 0
+
+
+def test_derive_batch_picks_up_only_what_a_later_capture_actually_added(store):
+    """Three captures, three separate `derive_batch` calls: each processes
+    only the quote its own capture wrote, never re-touching earlier ones —
+    the high-water-mark claim, proven across more than one increment."""
+    store.write_snapshot(snapshot([quote(contract="TESTC00100000", bid=9.0, ask=9.2)]))
+    assert derive_batch(store) == 1
+
+    store.write_snapshot(
+        snapshot([quote(contract="TESTC00110000", strike=110.0, bid=4.0, ask=4.2)],
+                 captured_at=T0 + timedelta(hours=1))
+    )
+    assert derive_batch(store) == 1
+
+    store.write_snapshot(
+        snapshot([quote(contract="TESTC00120000", strike=120.0, bid=1.5, ask=1.7)],
+                 captured_at=T0 + timedelta(hours=2))
+    )
+    assert derive_batch(store) == 1
+    assert derive_batch(store) == 0
+
+    rows = store.derived_as_of("TEST", EXPIRY, T0 + timedelta(hours=3), ENGINE_VERSION)
+    assert len(rows) == 3
 
 
 # --------------------------------------------------------------------------
@@ -176,6 +200,47 @@ def test_rebuild_actually_recomputes_rather_than_reusing_a_stale_row(store):
 
     assert first == pytest.approx(0.15, abs=5e-3)
     assert [r["implied_vol"] for r in rows] == pytest.approx([0.15, 0.45], abs=5e-3)
+
+
+def test_rebuild_derives_the_new_version_before_removing_the_old_one(store):
+    """An interruption between deriving and cleanup must leave the *old*
+    version intact and queryable, not the table empty at every version.
+
+    Calls the two halves `rebuild` composes directly, stopping short of the
+    cleanup step, to prove the ordering rather than trust the source read —
+    a reordering regression here would only ever show up as a production
+    outage during an engine-version bump, never in the happy-path test above.
+    """
+    price = price_american("call", 0.30)
+    store.write_snapshot(snapshot([quote(bid=price - 0.01, ask=price + 0.01)]))
+    rebuild(store, engine_version=1)
+
+    derive_batch(store, engine_version=2)  # the half rebuild() runs first
+    # Simulated crash right here, before clear_stale_derived ever runs.
+
+    with store.connect() as conn:
+        versions = {r["engine_version"] for r in conn.execute("SELECT DISTINCT engine_version FROM implied_vols")}
+    assert versions == {1, 2}, "old version must still be present mid-rebuild, not wiped upfront"
+
+    rows = store.derived_as_of("TEST", EXPIRY, T0 + timedelta(minutes=1), 1)
+    assert len(rows) == 1, "version 1 must still be readable during the window before cleanup"
+
+
+def test_needs_rebuild_is_false_on_a_fresh_archive(store):
+    """Nothing derived yet is the ordinary starting state, not a stale one."""
+    assert needs_rebuild(store) is False
+
+
+def test_needs_rebuild_is_false_once_derived_at_the_current_version(store):
+    store.write_snapshot(snapshot([quote(bid=9.0, ask=9.2)]))
+    derive_batch(store, engine_version=ENGINE_VERSION)
+    assert needs_rebuild(store, engine_version=ENGINE_VERSION) is False
+
+
+def test_needs_rebuild_is_true_when_only_a_stale_version_is_present(store):
+    store.write_snapshot(snapshot([quote(bid=9.0, ask=9.2)]))
+    derive_batch(store, engine_version=1)
+    assert needs_rebuild(store, engine_version=2) is True
 
 
 # --------------------------------------------------------------------------

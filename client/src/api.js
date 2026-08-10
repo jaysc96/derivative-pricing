@@ -15,5 +15,12 @@ export async function priceOption(payload) {
     throw new Error(message);
   }
 
+  if (body === null) {
+    // A 200 whose body didn't parse as JSON is not a priced result -- an
+    // unparseable success must surface as an error the caller can show,
+    // not silently resolve as if the request had actually succeeded.
+    throw new Error("The server returned an unreadable response.");
+  }
+
   return body;
 }

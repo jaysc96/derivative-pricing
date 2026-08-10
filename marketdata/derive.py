@@ -109,11 +109,36 @@ def rebuild(
     style: str = DEFAULT_STYLE,
     steps: int = DEFAULT_STEPS,
 ) -> int:
-    """Wipe the derived table and recompute every raw quote at ``engine_version``.
+    """Recompute every raw quote at ``engine_version``, then drop every other version.
 
     The wholesale half of KTD9. Reads only the raw archive to do it — proof
     that the layer is derived rather than captured, since the same input run
     through a different ``engine_version`` produces the table from scratch.
+
+    Derives the new version *before* removing the old one, deliberately —
+    wiping first (``store.clear_derived()``) would leave the table empty at
+    every version for the whole recompute, so a crash partway through it, or
+    a reader arriving mid-rebuild, would see nothing rather than the
+    previous version's still-good numbers. Deriving first means the only
+    state a crash before the final cleanup step can leave behind is the old
+    and new versions coexisting — never neither.
     """
-    store.clear_derived()
-    return derive_batch(store, engine_version=engine_version, style=style, steps=steps)
+    processed = derive_batch(store, engine_version=engine_version, style=style, steps=steps)
+    store.clear_stale_derived(keep_engine_version=engine_version)
+    return processed
+
+
+def needs_rebuild(store: Store, *, engine_version: int = ENGINE_VERSION) -> bool:
+    """Whether the derived table holds rows at a version other than the current one.
+
+    Distinguishes two situations ``derive_batch`` alone cannot tell apart:
+    an archive that has simply never been derived yet (``derived_engine_versions``
+    is empty — the ordinary incremental path is correct and cheap), and one
+    derived at a version the engine no longer runs (a stale version is
+    present — the very next incremental call would otherwise silently
+    inherit the whole accumulated backlog as "pending", inside whatever
+    unattended job happens to call it next, rather than as a deliberate,
+    named rebuild).
+    """
+    versions = store.derived_engine_versions()
+    return bool(versions) and versions != {engine_version}

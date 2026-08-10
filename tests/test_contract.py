@@ -83,6 +83,24 @@ def test_finite_differences_price_without_any_configuration():
     assert res.price > 0
 
 
+def _js_method_array(field: str) -> set[str]:
+    """Extract a bare JS string-array literal like ``const X = ["A", "B"];``."""
+    source = (REPO / "client" / "src" / "methodRules.js").read_text()
+    match = re.search(rf'{field}\s*=\s*\[([^\]]*)\]', source)
+    assert match, f"{field} not found in methodRules.js"
+    return {item.strip().strip('"').strip("'") for item in match.group(1).split(",") if item.strip()}
+
+
+def test_the_client_method_lists_agree_with_the_library_it_calls():
+    """`client/src/methodRules.js` hand-copies these two lists rather than
+    reading them from the API — nothing else enforces agreement, and a
+    method added or removed on one side without the other either hides a
+    real capability from the form or lets the form offer one the server will
+    reject on every submit."""
+    assert _js_method_array("EUROPEAN_METHODS") == set(EUROPEAN_METHODS)
+    assert _js_method_array("AMERICAN_METHODS") == set(AMERICAN_METHODS)
+
+
 def test_no_caller_supplied_grid_survives_anywhere():
     """The old bounds are gone from the library, the app, and the form."""
     opt = option("european", "atm_call_1y", "FD")

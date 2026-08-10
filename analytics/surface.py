@@ -70,7 +70,13 @@ def _reconstruct_chain(store: Store, symbol: str, expiry: date, moment: datetime
     rows = store.chain_as_of(symbol, expiry, moment)
     if not rows:
         return None
-    first = rows[0]
+    # The chain's spot/rate/yield come from whichever row happens first in
+    # the query's own return order, not from the most recently observed one
+    # -- with several quotes at different `observed_at` times in the same
+    # chain (the ordinary case once a symbol has been captured more than
+    # once), an arbitrary row could carry a stale snapshot's spot/rate/yield
+    # alongside a fresher quote's strike/bid/ask.
+    first = max(rows, key=lambda row: row["observed_at"])
     quotes = tuple(
         QuoteRecord(
             contract_symbol=row["contract_symbol"],
@@ -119,6 +125,21 @@ def _latest_moment(store: Store) -> datetime | None:
     return datetime.fromisoformat(last_capture) if last_capture else None
 
 
+def _live_expiries(store: Store, symbol: str, moment: datetime) -> list[date]:
+    """Expiries not yet settled as of ``moment``, sorted ascending.
+
+    ``symbols_and_expiries`` returns every expiry the archive has ever
+    captured, including contracts that expired months ago. Reading those
+    into a "current" skew or term-structure curve renders options nobody can
+    trade as though they were live, and feeds ``_violating_legs`` chains from
+    different capture rounds — a settled leg from one round compared against
+    a live leg from another is not the calendar violation it would look
+    like. Scoping to ``moment``'s own date also bounds read cost by the
+    archive's currently-live surface rather than by its total history.
+    """
+    return sorted(e for s, e in store.symbols_and_expiries() if s == symbol and e >= moment.date())
+
+
 def build_skew(
     store: Store,
     symbol: str,
@@ -126,14 +147,24 @@ def build_skew(
     engine_version: int = ENGINE_VERSION,
     option_type: str = "call",
     min_points: int = MIN_SKEW_POINTS,
+    excluded_legs: set[str] | None = None,
 ) -> list[SkewCurve]:
-    """One skew curve per captured expiry, from that expiry's latest snapshot."""
+    """One skew curve per captured expiry, from that expiry's latest snapshot.
+
+    ``excluded_legs`` lets a caller building both this and
+    ``build_term_structure`` for the same symbol compute ``_violating_legs``
+    once and pass it to both, rather than each independently reconstructing
+    and re-checking the same chains. Computed here when not supplied, so
+    calling this alone is unchanged.
+    """
     moment = _latest_moment(store)
     if moment is None:
         return []
 
-    expiries = sorted({e for s, e in store.symbols_and_expiries() if s == symbol})
-    excluded = _violating_legs(store, symbol, expiries, moment)
+    expiries = _live_expiries(store, symbol, moment)
+    excluded = (
+        excluded_legs if excluded_legs is not None else _violating_legs(store, symbol, expiries, moment)
+    )
 
     curves = []
     for expiry in expiries:
@@ -159,14 +190,20 @@ def build_term_structure(
     engine_version: int = ENGINE_VERSION,
     option_type: str = "call",
     min_points: int = MIN_TERM_STRUCTURE_POINTS,
+    excluded_legs: set[str] | None = None,
 ) -> list[TermStructureCurve]:
-    """One term-structure curve per strike that appears in the latest snapshots, across expiries."""
+    """One term-structure curve per strike that appears in the latest snapshots, across expiries.
+
+    See ``build_skew`` for ``excluded_legs``.
+    """
     moment = _latest_moment(store)
     if moment is None:
         return []
 
-    expiries = sorted({e for s, e in store.symbols_and_expiries() if s == symbol})
-    excluded = _violating_legs(store, symbol, expiries, moment)
+    expiries = _live_expiries(store, symbol, moment)
+    excluded = (
+        excluded_legs if excluded_legs is not None else _violating_legs(store, symbol, expiries, moment)
+    )
 
     by_strike: dict[float, list[TermPoint]] = {}
     for expiry in expiries:

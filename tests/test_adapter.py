@@ -417,3 +417,24 @@ def test_a_negative_rate_is_accepted():
     on sign alone would be a wrong assumption baked into the validator."""
     rate = adapter_for(FakeTicker(fast_info={"lastPrice": -0.5})).risk_free_rate()
     assert rate == pytest.approx(-0.005)
+
+
+def test_a_non_numeric_rate_reading_is_malformed_not_a_crash():
+    """`lastPrice` is division-scaled before validation; a shape change on the
+    provider's side must surface as a classified failure, not an uncaught
+    TypeError that would abort the whole capture batch."""
+    with pytest.raises(MalformedResponse):
+        adapter_for(FakeTicker(fast_info={"lastPrice": "not-a-number"})).risk_free_rate()
+
+
+def test_underlying_history_with_an_unparseable_index_is_malformed_not_a_crash():
+    """The index-to-date fallback mirrors `expiries`'s own malformed-value
+    handling — an unparseable stamp must not escape as a bare ValueError."""
+    frame = pd.DataFrame(
+        [{"Open": 600.0, "High": 606.0, "Low": 598.0, "Close": 604.0, "Volume": 71_000_000}],
+        index=["not-a-date"],
+    )
+    with pytest.raises(MalformedResponse):
+        adapter_for(FakeTicker(history=frame)).underlying_history(
+            "SPY", date(2026, 8, 1), date(2026, 8, 5)
+        )

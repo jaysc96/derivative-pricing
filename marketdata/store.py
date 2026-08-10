@@ -175,6 +175,25 @@ class SchemaMismatch(RuntimeError):
     """The database on disk was written by a different schema version."""
 
 
+#: Additive column deltas this code knows how to apply losslessly to a
+#: populated database at an older version, keyed by the version being
+#: upgraded FROM, as ``(table, column, sql_type)`` triples. A version not
+#: listed here still hard-fails in `_connect_and_migrate` — KTD7 keeps this
+#: to one file rather than a migration framework, so only a delta that is
+#: provably additive (new nullable columns; new tables are handled by
+#: `executescript`'s own `CREATE TABLE IF NOT EXISTS`) gets an entry.
+#: Version 1 changed `quotes`' own UNIQUE constraint, which SQLite cannot
+#: express as an `ALTER TABLE`, and no rebuild for that gap has been written
+#: or tested against a real archive, so 1 is deliberately absent — a
+#: database at that version still hard-fails.
+_ADDITIVE_COLUMNS: dict[int, tuple[tuple[str, str, str], ...]] = {
+    2: (
+        ("snapshots", "risk_free_rate", "REAL"),
+        ("snapshots", "dividend_yield", "REAL"),
+    ),
+}
+
+
 def observed_at(snapshot: ChainSnapshot) -> str:
     """When the quotes in this snapshot describe the market.
 
@@ -204,12 +223,26 @@ class Store:
             ).fetchone()[0]
             version = conn.execute("PRAGMA user_version").fetchone()[0]
             if populated and version != SCHEMA_VERSION:
-                raise SchemaMismatch(
-                    f"{self.path} was written by schema version {version}, and this "
-                    f"code expects {SCHEMA_VERSION}. There is no migration path "
-                    "(KTD7); delete the file and re-capture, or keep it aside and "
-                    "point at a new one."
-                )
+                migration = _ADDITIVE_COLUMNS.get(version)
+                if migration is None or version > SCHEMA_VERSION:
+                    raise SchemaMismatch(
+                        f"{self.path} was written by schema version {version}, and this "
+                        f"code expects {SCHEMA_VERSION}. There is no migration path "
+                        "(KTD7) from that version; delete the file and re-capture, or "
+                        "keep it aside and point at a new one."
+                    )
+                # ALTER TABLE commits immediately in SQLite's autocommit mode
+                # -- it does not wait for this method's own conn.commit()
+                # call below, so a crash between here and the version bump
+                # (still unwritten at that point) would leave the column
+                # already present. Checking existence first makes a retry on
+                # the next open safe rather than a crash on "duplicate
+                # column" — table/column names come only from the
+                # hardcoded dict above, never from external input.
+                for table, column, sql_type in migration:
+                    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+                    if column not in existing:
+                        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
             conn.executescript(SCHEMA)
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             conn.commit()
@@ -481,6 +514,22 @@ class Store:
         ``as_of``, not ``captured_at``: for a live row they agree, but a
         backfilled row's ``captured_at`` is today, and expiry minus today
         would be nonsense for a date the row actually describes months ago.
+
+        Filtered by a high-water mark — the highest ``quote_id`` already
+        derived at this version — rather than an anti-join against every raw
+        quote ever captured. A ``LEFT JOIN ... WHERE iv.id IS NULL`` has to
+        scan the whole of ``quotes`` regardless of how well-indexed
+        ``implied_vols`` is, since that scan is the outer side of the join;
+        measured directly, that cost grows linearly with total accumulated
+        history rather than with what a single capture actually adds. The
+        watermark is safe only because ``derive_batch`` processes rows in
+        ascending ``id`` order below and ``write_derived`` commits each one
+        durably before moving to the next — so a crash mid-batch can only
+        ever leave a *contiguous* tail undone, never a gap below the
+        watermark, and the next call picks up exactly where it left off. A
+        fresh engine version with no rows yet has a watermark of 0, which
+        correctly returns the entire archive — the same query serves both
+        the ordinary incremental path and ``rebuild()``'s wholesale one.
         """
         with closing(self.connect()) as conn:
             return list(
@@ -492,9 +541,10 @@ class Store:
                                 AS time_to_expiry
                        FROM quotes q
                        JOIN snapshots s ON s.id = q.snapshot_id
-                       LEFT JOIN implied_vols iv
-                         ON iv.quote_id = q.id AND iv.engine_version = ?
-                       WHERE iv.id IS NULL""",
+                       WHERE q.id > (
+                         SELECT COALESCE(MAX(quote_id), 0) FROM implied_vols WHERE engine_version = ?
+                       )
+                       ORDER BY q.id""",
                     (engine_version,),
                 )
             )
@@ -532,6 +582,36 @@ class Store:
             result = conn.execute("DELETE FROM implied_vols")
             conn.commit()
             return result.rowcount
+
+    def clear_stale_derived(self, *, keep_engine_version: int) -> int:
+        """Remove derived rows at every engine version except the one to keep.
+
+        Used by ``rebuild()`` only after the new version's rows already
+        exist, so a reader is never caught in a window where the derived
+        table holds nothing at any version — unlike ``clear_derived()``,
+        which empties the table outright before recomputation starts.
+        """
+        with closing(self.connect()) as conn:
+            result = conn.execute(
+                "DELETE FROM implied_vols WHERE engine_version != ?", (keep_engine_version,)
+            )
+            conn.commit()
+            return result.rowcount
+
+    def derived_engine_versions(self) -> set[int]:
+        """Every engine version with at least one row in the derived table.
+
+        Empty on a fresh archive. A caller comparing this against the
+        library's current ``ENGINE_VERSION`` can tell "nothing derived yet"
+        (incremental ``derive_batch`` is the right next step) apart from
+        "derived at a version that is no longer current" (a wholesale
+        ``rebuild`` is), without adding a schema column to track it.
+        """
+        with closing(self.connect()) as conn:
+            return {
+                row["engine_version"]
+                for row in conn.execute("SELECT DISTINCT engine_version FROM implied_vols")
+            }
 
     def derived_coverage(
         self, engine_version: int, *, symbol: str | None = None, expiry: date | None = None
