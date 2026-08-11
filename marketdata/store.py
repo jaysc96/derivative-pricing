@@ -83,6 +83,11 @@ CREATE TABLE IF NOT EXISTS snapshots (
 );
 CREATE INDEX IF NOT EXISTS idx_snapshots_symbol_expiry
     ON snapshots (symbol, expiry, as_of);
+-- Covers latest_capture and underlying_price_at, both MAX(captured_at)
+-- filtered on symbol alone (no expiry in the WHERE clause, so the
+-- expiry-leading index above doesn't help either query).
+CREATE INDEX IF NOT EXISTS idx_snapshots_symbol_captured
+    ON snapshots (symbol, captured_at);
 
 CREATE TABLE IF NOT EXISTS quotes (
     id              INTEGER PRIMARY KEY,
@@ -660,6 +665,26 @@ class Store:
                 "SELECT MAX(captured_at) AS last FROM snapshots WHERE symbol = ?", (symbol,)
             ).fetchone()
             return datetime.fromisoformat(row["last"]) if row["last"] else None
+
+    def underlying_price_at(self, symbol: str, moment: datetime) -> float | None:
+        """The spot recorded by the most recent snapshot at or before ``moment``.
+
+        Point-in-time like every other read here: selecting the latest
+        snapshot *at or before* the moment, rather than the symbol's current
+        price, is what lets an at-the-money measure taken for a past capture
+        stay anchored to the spot that was actually observed then. ``None``
+        when no snapshot carries one -- the rate/yield hiccup that leaves
+        ``underlying_price`` null is the same one that leaves this unknown,
+        and a fabricated spot would silently pick the wrong strike.
+        """
+        with closing(self.connect()) as conn:
+            row = conn.execute(
+                """SELECT underlying_price FROM snapshots
+                   WHERE symbol = ? AND captured_at <= ? AND underlying_price IS NOT NULL
+                   ORDER BY captured_at DESC LIMIT 1""",
+                (symbol, moment.isoformat()),
+            ).fetchone()
+            return row["underlying_price"] if row else None
 
     def capture_moments(self, symbol: str) -> list[tuple[date, datetime]]:
         """One ``(as_of, captured_at)`` pair per day this symbol was captured, oldest first.

@@ -156,6 +156,18 @@ def test_a_snapshot_with_no_dividend_yield_is_also_withheld(store):
     assert status == NO_MARKET_CONTEXT
 
 
+def test_a_snapshot_with_no_underlying_price_is_also_withheld(store):
+    """Without this guard, None reaches the solver as the spot argument and
+    fails inside its own arithmetic rather than being reported here."""
+    store.write_snapshot(snapshot([quote(bid=9.0, ask=9.2)], underlying_price=None))
+    derive_batch(store)
+
+    with store.connect() as conn:
+        row = conn.execute("SELECT status, implied_vol FROM implied_vols").fetchone()
+    assert row["status"] == NO_MARKET_CONTEXT
+    assert row["implied_vol"] is None
+
+
 # --------------------------------------------------------------------------
 # Plan scenario: changing the engine version rebuilds from the raw quotes
 # --------------------------------------------------------------------------

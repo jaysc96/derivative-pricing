@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import AnalyticsView from "./analytics/AnalyticsView";
 import { METHOD_LABELS, fieldsForMethod, methodAfterExerciseChange, methodsForExercise } from "./methodRules";
 import { priceOption } from "./api";
@@ -19,8 +19,9 @@ const SIZING_FIELDS = {
   timestep: { label: "Timestep (dt):", step: "0.001", defaultValue: "0.004" },
 };
 
+//: Price leads on its own row; the Greeks follow as a uniform grid, since
+//: they are read against each other rather than against the price.
 const GREEK_LABELS = {
-  price: "Option Value",
   delta: "Delta Δ",
   gamma: "Gamma Γ",
   theta: "Theta Θ",
@@ -35,8 +36,57 @@ function defaultFieldState() {
   return state;
 }
 
+function formatResult(value) {
+  return value === null || value === undefined ? "N/A" : value.toFixed(3);
+}
+
+function Stat({ label, value, hero = false }) {
+  const text = formatResult(value);
+  return (
+    <div className={hero ? "stat stat-hero" : "stat"}>
+      <div className="stat-label">{label}</div>
+      <div className={text === "N/A" ? "stat-value is-na" : "stat-value"}>{text}</div>
+    </div>
+  );
+}
+
+function Segmented({ legend, name, options, value, onChange }) {
+  return (
+    <div className="field">
+      <span className="control-label">{legend}</span>
+      <div className="segmented" role="group" aria-label={legend}>
+        {options.map((option) => (
+          // Fragment, not a wrapper element: the checked styling keys off the
+          // `input:checked + label` adjacency, and the labels are flex items
+          // of `.segmented` itself.
+          <Fragment key={option.id}>
+            <input
+              type="radio"
+              id={option.id}
+              name={name}
+              autoComplete="off"
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+            />
+            <label htmlFor={option.id}>{option.label}</label>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The visible tab is kept in the URL hash so a view is linkable and survives
+ *  a refresh -- without it, "look at the SPY surface" is not a thing you can
+ *  send someone. Falls back to the calculator for an empty or unknown hash. */
+function viewFromHash() {
+  return typeof window !== "undefined" && window.location.hash === "#analytics"
+    ? "analytics"
+    : "calculator";
+}
+
 export default function App() {
-  const [view, setView] = useState("calculator");
+  const [view, setView] = useState(viewFromHash);
   const [exerciseType, setExerciseType] = useState("european");
   const [optionType, setOptionType] = useState("call");
   const [method, setMethod] = useState("BSM");
@@ -46,6 +96,18 @@ export default function App() {
   const [result, setResult] = useState(null);
 
   const visibleSizingKeys = fieldsForMethod(method);
+
+  // Back/forward between the two tabs, not just forward navigation.
+  useEffect(() => {
+    const onHashChange = () => setView(viewFromHash());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  function showView(next) {
+    setView(next);
+    window.location.hash = next === "analytics" ? "#analytics" : "";
+  }
 
   function handleExerciseTypeChange(newExerciseType) {
     setExerciseType(newExerciseType);
@@ -81,217 +143,180 @@ export default function App() {
   }
 
   return (
-    <div className="container">
-      <header className="text-center p-3">
-        <h1 className="mb-5">Option Pricing Calculator</h1>
+    <>
+      <header className="app-header">
+        <span className="wordmark">
+          <span className="wordmark-mark">∂V</span>
+          Derivative Pricing
+          <span className="wordmark-sub">volatility analytics</span>
+        </span>
+
+        <ul className="tabs" role="tablist">
+          <li role="presentation">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === "calculator"}
+              className="tab"
+              onClick={() => showView("calculator")}
+            >
+              Calculator
+            </button>
+          </li>
+          <li role="presentation">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === "analytics"}
+              className="tab"
+              onClick={() => showView("analytics")}
+            >
+              Analytics
+            </button>
+          </li>
+        </ul>
+
+        <span className="header-spacer" />
+        <span className="header-note">6 methods · American &amp; European</span>
       </header>
 
-      <ul className="nav nav-tabs mb-4">
-        <li className="nav-item">
-          <button
-            type="button"
-            className={`nav-link ${view === "calculator" ? "active" : ""}`}
-            onClick={() => setView("calculator")}
-          >
-            Calculator
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            type="button"
-            className={`nav-link ${view === "analytics" ? "active" : ""}`}
-            onClick={() => setView("analytics")}
-          >
-            Analytics
-          </button>
-        </li>
-      </ul>
+      <main>
+        {view === "analytics" && <AnalyticsView />}
 
-      {view === "analytics" && <AnalyticsView />}
-
-      {view === "calculator" && (
-      <>
-      <form onSubmit={handleSubmit}>
-        <fieldset disabled={pending}>
-        <div className="row">
-          <div className="col-md-4 mb-3">
-            <label className="form-label text-muted" style={{ fontSize: "0.85rem" }}>
-              Exercise Type:
-            </label>
-            <div className="btn-group d-flex" role="group" aria-label="Exercise Type">
-              <input
-                type="radio"
-                className="btn-check"
-                id="european"
-                autoComplete="off"
-                checked={exerciseType === "european"}
-                onChange={() => handleExerciseTypeChange("european")}
-              />
-              <label className="btn btn-outline-secondary" htmlFor="european">
-                European
-              </label>
-              <input
-                type="radio"
-                className="btn-check"
-                id="american"
-                autoComplete="off"
-                checked={exerciseType === "american"}
-                onChange={() => handleExerciseTypeChange("american")}
-              />
-              <label className="btn btn-outline-info" htmlFor="american">
-                American
-              </label>
-            </div>
-          </div>
-
-          <div className="col-md-4 mb-3">
-            <label className="form-label text-muted" style={{ fontSize: "0.85rem" }}>
-              Option Type:
-            </label>
-            <div className="btn-group d-flex" role="group" aria-label="Option Type">
-              <input
-                type="radio"
-                className="btn-check"
-                id="call"
-                autoComplete="off"
-                checked={optionType === "call"}
-                onChange={() => setOptionType("call")}
-              />
-              <label className="btn btn-outline-success" htmlFor="call">
-                Call
-              </label>
-              <input
-                type="radio"
-                className="btn-check"
-                id="put"
-                autoComplete="off"
-                checked={optionType === "put"}
-                onChange={() => setOptionType("put")}
-              />
-              <label className="btn btn-outline-danger" htmlFor="put">
-                Put
-              </label>
-            </div>
-          </div>
-
-          <div className="col-md-4 mb-3">
-            <div className="form-floating">
-              <select
-                id="method"
-                className="form-select"
-                value={method}
-                onChange={(event) => setMethod(event.target.value)}
-              >
-                {methodsForExercise(exerciseType).map((value) => (
-                  <option key={value} value={value}>
-                    {METHOD_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-              <label htmlFor="method" className="form-label">
-                Evaluation method:
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="row">
-          {CONTRACT_FIELDS.map((field) => (
-            <div key={field.key} className="col-md-4 mb-3">
-              <div className="form-floating">
-                <input
-                  type="number"
-                  id={field.key}
-                  step={field.step}
-                  className="form-control"
-                  value={fields[field.key]}
-                  onChange={(event) => handleFieldChange(field.key, event.target.value)}
-                  required
-                />
-                <label htmlFor={field.key} className="form-label">
-                  {field.label}
-                </label>
+        {view === "calculator" && (
+          <div className="split">
+            <section className="panel">
+              <div className="panel-header">
+                <h2 className="panel-title">Contract</h2>
               </div>
-            </div>
-          ))}
-        </div>
+              <p className="panel-sub">
+                Priced by the library directly; the API bounds every sizing input server-side.
+              </p>
 
-        {visibleSizingKeys.length > 0 && (
-          <div className="row">
-            {visibleSizingKeys.map((key) => (
-              <div key={key} className="col-md-4 mb-3">
-                <div className="form-floating">
-                  <input
-                    type="number"
-                    id={key}
-                    step={SIZING_FIELDS[key].step}
-                    className="form-control"
-                    value={fields[key]}
-                    onChange={(event) => handleFieldChange(key, event.target.value)}
-                    required
-                  />
-                  <label htmlFor={key} className="form-label">
-                    {SIZING_FIELDS[key].label}
-                  </label>
+              <form onSubmit={handleSubmit}>
+                <fieldset disabled={pending}>
+                  <div className="control-row">
+                    <Segmented
+                      legend="Exercise Type:"
+                      name="exercise-type"
+                      value={exerciseType}
+                      onChange={handleExerciseTypeChange}
+                      options={[
+                        { id: "european", value: "european", label: "European" },
+                        { id: "american", value: "american", label: "American" },
+                      ]}
+                    />
+                    <Segmented
+                      legend="Option Type:"
+                      name="option-type"
+                      value={optionType}
+                      onChange={setOptionType}
+                      options={[
+                        { id: "call", value: "call", label: "Call" },
+                        { id: "put", value: "put", label: "Put" },
+                      ]}
+                    />
+                    <div className="field">
+                      <label htmlFor="method">Evaluation method:</label>
+                      <select id="method" value={method} onChange={(event) => setMethod(event.target.value)}>
+                        {methodsForExercise(exerciseType).map((value) => (
+                          <option key={value} value={value}>
+                            {METHOD_LABELS[value]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="section-label" style={{ marginTop: 22 }}>
+                    Parameters
+                  </div>
+                  <div className="field-grid">
+                    {CONTRACT_FIELDS.map((field) => (
+                      <div key={field.key} className="field">
+                        <label htmlFor={field.key}>{field.label}</label>
+                        <input
+                          type="number"
+                          id={field.key}
+                          step={field.step}
+                          value={fields[field.key]}
+                          onChange={(event) => handleFieldChange(field.key, event.target.value)}
+                          required
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {visibleSizingKeys.length > 0 && (
+                    <>
+                      <div className="section-label" style={{ marginTop: 22 }}>
+                        {METHOD_LABELS[method]} sizing
+                      </div>
+                      <div className="field-grid">
+                        {visibleSizingKeys.map((key) => (
+                          <div key={key} className="field">
+                            <label htmlFor={key}>{SIZING_FIELDS[key].label}</label>
+                            <input
+                              type="number"
+                              id={key}
+                              step={SIZING_FIELDS[key].step}
+                              value={fields[key]}
+                              onChange={(event) => handleFieldChange(key, event.target.value)}
+                              required
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ marginTop: 24 }}>
+                    <button type="submit" className="btn" disabled={pending}>
+                      <span>{pending ? "Calculating..." : "Calculate Price"}</span>
+                      {pending && <span className="spinner" data-testid="pending-indicator" aria-hidden="true" />}
+                    </button>
+                  </div>
+                </fieldset>
+              </form>
+            </section>
+
+            <section className="panel">
+              <div className="panel-header">
+                <h2 className="panel-title">Result</h2>
+                <span className="panel-spacer" />
+                <span className="chip">{METHOD_LABELS[method]}</span>
+              </div>
+              <p className="panel-sub">
+                {exerciseType === "american" ? "American" : "European"}{" "}
+                {optionType} · Greeks by the method's own estimation
+              </p>
+
+              {error && (
+                <div className="notice notice-error" role="alert">
+                  {error}
                 </div>
-              </div>
-            ))}
+              )}
+
+              {!error && !result && (
+                <div className="placeholder-panel">
+                  {pending ? "Pricing…" : "Submit the contract to price it."}
+                </div>
+              )}
+
+              {result && (
+                <div className="stat-grid">
+                  <Stat label="Option Value" value={result.price} hero />
+                  {Object.keys(GREEK_LABELS).map((key) => (
+                    <Stat key={key} label={GREEK_LABELS[key]} value={result[key]} />
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
+      </main>
 
-        <div className="row align-items-center">
-          <div className="col-md-6 mb-3">
-            <button type="submit" className="btn btn-primary" disabled={pending}>
-              <span>{pending ? "Calculating..." : "Calculate Price"}</span>
-              {pending && (
-                <span
-                  className="spinner-grow spinner-grow-sm ms-2"
-                  role="status"
-                  aria-hidden="true"
-                  data-testid="pending-indicator"
-                />
-              )}
-            </button>
-          </div>
-        </div>
-        </fieldset>
-      </form>
-
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
-
-      {result && (
-        <div className="container">
-          <h3 className="mt-3">Results:</h3>
-          <div className="table-responsive">
-            <table className="table table-hover table-striped table-bordered">
-              <thead>
-                <tr>
-                  {Object.keys(GREEK_LABELS).map((key) => (
-                    <th key={key}>{GREEK_LABELS[key]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {Object.keys(GREEK_LABELS).map((key) => (
-                    <td key={key}>{result[key] === null ? "N/A" : result[key].toFixed(3)}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      </>
-      )}
-
-      <footer className="text-center p-3 mt-5">
-        <p>&copy; 2024 Jay Singh Chauhan</p>
-      </footer>
-    </div>
+      <footer className="app-footer">© 2024 Jay Singh Chauhan</footer>
+    </>
   );
 }

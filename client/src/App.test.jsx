@@ -1,13 +1,25 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { priceOption } from "./api";
 
 vi.mock("./api", () => ({ priceOption: vi.fn() }));
 
+// App imports AnalyticsView unconditionally (the calculator/analytics split
+// is a runtime tab, not a code split). Most tests here never switch off the
+// calculator tab, so AnalyticsView's own data-fetching and its Surface3D
+// child (real Plotly, no WebGL in jsdom -- see analytics/AnalyticsView.test.jsx)
+// are stubbed out; App's responsibility is which top-level view is shown,
+// not what AnalyticsView does once mounted -- that's AnalyticsView.test.jsx's job.
+vi.mock("./analytics/AnalyticsView", () => ({
+  default: () => <div data-testid="analytics-view-stub" />,
+}));
+
 beforeEach(() => {
   priceOption.mockReset();
+  window.location.hash = "";
 });
 
 function methodSelect() {
@@ -207,5 +219,60 @@ describe("results", () => {
 
     expect(await screen.findByText("5.000")).toBeInTheDocument();
     expect(screen.getByText("N/A")).toBeInTheDocument();
+  });
+});
+
+// --------------------------------------------------------------------------
+// URL-hash tab routing -- a view is linkable and survives a refresh
+// --------------------------------------------------------------------------
+
+describe("hash-based tab routing", () => {
+  it("starts on the calculator when the hash is empty", () => {
+    render(<App />);
+
+    expect(screen.getByRole("tab", { name: "Calculator" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByTestId("analytics-view-stub")).not.toBeInTheDocument();
+  });
+
+  it("starts on analytics when loaded with #analytics", () => {
+    window.location.hash = "#analytics";
+    render(<App />);
+
+    expect(screen.getByRole("tab", { name: "Analytics" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("analytics-view-stub")).toBeInTheDocument();
+  });
+
+  it("clicking the Analytics tab updates the URL hash", async () => {
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("tab", { name: "Analytics" }));
+
+    expect(window.location.hash).toBe("#analytics");
+    expect(screen.getByTestId("analytics-view-stub")).toBeInTheDocument();
+  });
+
+  it("clicking back to Calculator clears the hash", async () => {
+    window.location.hash = "#analytics";
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("tab", { name: "Calculator" }));
+
+    expect(window.location.hash).toBe("");
+    expect(screen.queryByTestId("analytics-view-stub")).not.toBeInTheDocument();
+  });
+
+  it("a dispatched hashchange event switches the visible view (browser back/forward)", () => {
+    render(<App />);
+    expect(screen.queryByTestId("analytics-view-stub")).not.toBeInTheDocument();
+
+    // A raw window event, unlike userEvent/fireEvent, isn't automatically
+    // act()-wrapped -- do it explicitly rather than relying on waitFor to
+    // paper over the resulting "not wrapped in act" warning.
+    act(() => {
+      window.location.hash = "#analytics";
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+
+    expect(screen.getByTestId("analytics-view-stub")).toBeInTheDocument();
   });
 });

@@ -16,15 +16,16 @@ than a hardcoded literal, because the day a European-style symbol joins the
 tracked set, a single scalar override stops being correct and a real per-
 symbol resolution has to replace it; that day has not arrived.
 
-**A missing rate or yield is a distinct reason from every status the solver
-itself produces.** ``pricing.implied``'s four failure statuses describe the
-solver's own conclusion about a price; ``NO_MARKET_CONTEXT`` describes a gap
-before the solver is ever called — the snapshot the quote belongs to has no
-risk-free rate or dividend yield to invert against, most often because a
-capture's rate/yield fetch failed while the chain fetch it rode alongside
-still succeeded. Both live in the same ``status`` column, because a reader
-asking "why isn't this contract in the surface" should not need to know which
-stage produced the gap to find the answer.
+**A missing rate, yield, or spot is a distinct reason from every status the
+solver itself produces.** ``pricing.implied``'s four failure statuses
+describe the solver's own conclusion about a price; ``NO_MARKET_CONTEXT``
+describes a gap before the solver is ever called — the snapshot the quote
+belongs to is missing one of the three inputs it needs to invert against
+(risk-free rate, dividend yield, or the underlying's own spot), most often
+because part of a capture's fetch failed while the option chain it rode
+alongside still succeeded. All three live in the same ``status`` column,
+because a reader asking "why isn't this contract in the surface" should not
+need to know which fetch produced the gap to find the answer.
 """
 
 from __future__ import annotations
@@ -58,6 +59,16 @@ def _invert_one(row, *, style: str, steps: int) -> tuple[str, float | None, str]
             NO_MARKET_CONTEXT,
             None,
             "risk-free rate or dividend yield unavailable for this snapshot",
+        )
+    if row["underlying_price"] is None:
+        # Without this guard, None reaches implied_volatility() as the spot
+        # argument and fails deep inside the solver's own arithmetic instead
+        # of here, at the one place that already knows what a missing
+        # market-context input means and how to report it.
+        return (
+            NO_MARKET_CONTEXT,
+            None,
+            "underlying price unavailable for this snapshot",
         )
     result = implied_volatility(
         row["option_type"],

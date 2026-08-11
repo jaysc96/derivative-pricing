@@ -464,6 +464,59 @@ def test_latest_capture_is_scoped_to_one_symbol(store):
     assert store.latest_capture("SPY") == T0
 
 
+def test_underlying_price_at_is_none_before_any_capture(store):
+    assert store.underlying_price_at("SPY", T0) is None
+
+
+def test_underlying_price_at_reads_the_snapshot_current_at_that_moment(store):
+    """Point-in-time, not latest: an at-the-money reading taken for a past
+    capture must anchor to the spot observed then, not today's."""
+    later = T0 + timedelta(days=1)
+    store.write_snapshot(snapshot(quote(), captured_at=T0))
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="yfinance", symbol="SPY", expiry=EXPIRY, captured_at=later,
+            as_of=later.date(), origin="live", underlying_price=655.0,
+            quotes=(quote("C00600000B", bid=13.0, ask=13.4),),
+        )
+    )
+
+    assert store.underlying_price_at("SPY", T0) == pytest.approx(604.0)
+    assert store.underlying_price_at("SPY", later) == pytest.approx(655.0)
+
+
+def test_underlying_price_at_skips_a_snapshot_that_recorded_no_spot(store):
+    """A rate/yield hiccup can leave `underlying_price` null; falling back to
+    the last snapshot that has one beats returning None and dropping the day."""
+    later = T0 + timedelta(hours=2)
+    store.write_snapshot(snapshot(quote(), captured_at=T0))
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="yfinance", symbol="SPY", expiry=EXPIRY, captured_at=later,
+            as_of=later.date(), origin="live", underlying_price=None,
+            quotes=(quote("C00600000C", bid=13.0, ask=13.4),),
+        )
+    )
+
+    assert store.underlying_price_at("SPY", later) == pytest.approx(604.0)
+
+
+def test_underlying_price_at_is_scoped_to_one_symbol(store):
+    """A later, differently-priced capture of a different symbol must not
+    leak into this symbol's own spot -- the same property latest_capture
+    already guarantees."""
+    store.write_snapshot(snapshot(quote(), captured_at=T0))
+    store.write_snapshot(
+        ChainSnapshot(
+            provider="yfinance", symbol="QQQ", expiry=EXPIRY, captured_at=T0 + timedelta(hours=1),
+            as_of=T0.date(), origin="live", underlying_price=400.0,
+            quotes=(quote("C00600000Q", bid=1.0, ask=1.1),),
+        )
+    )
+
+    assert store.underlying_price_at("SPY", T0 + timedelta(hours=1)) == pytest.approx(604.0)
+
+
 def test_capture_moments_is_empty_before_any_capture(store):
     assert store.capture_moments("SPY") == []
 

@@ -108,7 +108,7 @@ def _reconstruct_chain(store: Store, symbol: str, expiry: date, moment: datetime
     )
 
 
-def _violating_legs(store: Store, symbol: str, expiries: list[date], moment: datetime) -> set[str]:
+def violating_legs(store: Store, symbol: str, expiries: list[date], moment: datetime) -> set[str]:
     chains = [
         chain
         for chain in (_reconstruct_chain(store, symbol, expiry, moment) for expiry in expiries)
@@ -130,7 +130,7 @@ def live_expiries(store: Store, symbol: str, moment: datetime) -> list[date]:
     ``symbols_and_expiries`` returns every expiry the archive has ever
     captured, including contracts that expired months ago. Reading those
     into a "current" skew or term-structure curve renders options nobody can
-    trade as though they were live, and feeds ``_violating_legs`` chains from
+    trade as though they were live, and feeds ``violating_legs`` chains from
     different capture rounds — a settled leg from one round compared against
     a live leg from another is not the calendar violation it would look
     like. Scoping to ``moment``'s own date also bounds read cost by the
@@ -151,7 +151,7 @@ def build_skew(
     """One skew curve per captured expiry, from that expiry's latest snapshot.
 
     ``excluded_legs`` lets a caller building both this and
-    ``build_term_structure`` for the same symbol compute ``_violating_legs``
+    ``build_term_structure`` for the same symbol compute ``violating_legs``
     once and pass it to both, rather than each independently reconstructing
     and re-checking the same chains. Computed here when not supplied, so
     calling this alone is unchanged.
@@ -162,7 +162,7 @@ def build_skew(
 
     expiries = live_expiries(store, symbol, moment)
     excluded = (
-        excluded_legs if excluded_legs is not None else _violating_legs(store, symbol, expiries, moment)
+        excluded_legs if excluded_legs is not None else violating_legs(store, symbol, expiries, moment)
     )
 
     curves = []
@@ -201,7 +201,7 @@ def build_term_structure(
 
     expiries = live_expiries(store, symbol, moment)
     excluded = (
-        excluded_legs if excluded_legs is not None else _violating_legs(store, symbol, expiries, moment)
+        excluded_legs if excluded_legs is not None else violating_legs(store, symbol, expiries, moment)
     )
 
     by_strike: dict[float, list[TermPoint]] = {}
@@ -246,7 +246,7 @@ def build_violations(store: Store, symbol: str) -> list[ViolationRow]:
     """Every no-arbitrage violation on the symbol's live surface, one row per leg (R21).
 
     Reruns the same reconstruction and ``find_violations`` call
-    ``_violating_legs`` makes to compute what ``build_skew``/
+    ``violating_legs`` makes to compute what ``build_skew``/
     ``build_term_structure`` exclude — this is that computation's other
     half, the one that shows what was excluded and why instead of quietly
     dropping it.
