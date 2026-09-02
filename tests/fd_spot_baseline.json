@@ -1,0 +1,155 @@
+{
+  "_meta": {
+    "grid": [
+      1.0,
+      300.0,
+      0.003968253968253968
+    ],
+    "note": "Values at the contract's spot on the pre-U4 caller-supplied grid. Only `price` is asserted after U4: delta and gamma deliberately change from grid-bound bumping to spatial differences (KTD5).",
+    "source": "pricing/ at commit a86935b (behavior-identical to pre-move src/option.py)"
+  },
+  "american.atm_call_1y": {
+    "delta": 0.587,
+    "gamma": 0.019,
+    "price": 9.204,
+    "rho": 49.614,
+    "spot": 100.0,
+    "theta": -4.807,
+    "vega": 37.852
+  },
+  "american.atm_put_1y": {
+    "delta": -0.423,
+    "gamma": 0.022,
+    "price": 6.646,
+    "rho": -33.578,
+    "spot": 100.0,
+    "theta": -2.53,
+    "vega": 37.986
+  },
+  "american.high_vol_call_3m": {
+    "delta": 0.562,
+    "gamma": 0.013,
+    "price": 11.936,
+    "rho": 10.913,
+    "spot": 100.0,
+    "theta": -22.091,
+    "vega": 19.547
+  },
+  "american.itm_call_1y": {
+    "delta": 0.86,
+    "gamma": 0.008,
+    "price": 24.043,
+    "rho": 78.97,
+    "spot": 120.0,
+    "theta": -4.063,
+    "vega": 24.144
+  },
+  "american.itm_put_6m": {
+    "delta": -0.793,
+    "gamma": 0.017,
+    "price": 21.38,
+    "rho": -21.424,
+    "spot": 80.0,
+    "theta": -3.998,
+    "vega": 15.83
+  },
+  "american.low_vol_call_1y": {
+    "delta": 0.79,
+    "gamma": 0.027,
+    "price": 8.741,
+    "rho": 70.472,
+    "spot": 100.0,
+    "theta": -3.108,
+    "vega": 27.336
+  },
+  "american.otm_call_1y": {
+    "delta": 0.189,
+    "gamma": 0.017,
+    "price": 1.52,
+    "rho": 13.762,
+    "spot": 80.0,
+    "theta": -2.416,
+    "vega": 21.651
+  },
+  "american.otm_put_2y": {
+    "delta": -0.157,
+    "gamma": 0.005,
+    "price": 4.499,
+    "rho": -41.793,
+    "spot": 130.0,
+    "theta": -2.217,
+    "vega": 43.313
+  },
+  "european.atm_call_1y": {
+    "delta": 0.587,
+    "gamma": 0.019,
+    "price": 9.204,
+    "rho": 49.614,
+    "spot": 100.0,
+    "theta": -4.807,
+    "vega": 37.852
+  },
+  "european.atm_put_1y": {
+    "delta": -0.394,
+    "gamma": 0.019,
+    "price": 6.319,
+    "rho": -44.915,
+    "spot": 100.0,
+    "theta": -2.148,
+    "vega": 37.852
+  },
+  "european.high_vol_call_3m": {
+    "delta": 0.562,
+    "gamma": 0.013,
+    "price": 11.936,
+    "rho": 10.913,
+    "spot": 100.0,
+    "theta": -22.091,
+    "vega": 19.547
+  },
+  "european.itm_call_1y": {
+    "delta": 0.86,
+    "gamma": 0.008,
+    "price": 24.043,
+    "rho": 78.97,
+    "spot": 120.0,
+    "theta": -4.063,
+    "vega": 24.144
+  },
+  "european.itm_put_6m": {
+    "delta": -0.765,
+    "gamma": 0.016,
+    "price": 20.94,
+    "rho": -40.622,
+    "spot": 80.0,
+    "theta": -3.458,
+    "vega": 17.409
+  },
+  "european.low_vol_call_1y": {
+    "delta": 0.79,
+    "gamma": 0.027,
+    "price": 8.741,
+    "rho": 70.472,
+    "spot": 100.0,
+    "theta": -3.108,
+    "vega": 27.336
+  },
+  "european.otm_call_1y": {
+    "delta": 0.189,
+    "gamma": 0.017,
+    "price": 1.52,
+    "rho": 13.762,
+    "spot": 80.0,
+    "theta": -2.416,
+    "vega": 21.651
+  },
+  "european.otm_put_2y": {
+    "delta": -0.152,
+    "gamma": 0.005,
+    "price": 4.389,
+    "rho": -47.115,
+    "spot": 130.0,
+    "theta": -2.096,
+    "vega": 42.27
+  }
+}

@@ -1,0 +1,1059 @@
+{
+  "_meta": {
+    "fd_grid": [
+      1.0,
+      300.0,
+      0.003968253968253968
+    ],
+    "mc_dt": 0.003968253968253968,
+    "mc_paths": 20000,
+    "seed": 42,
+    "tree_steps": 200
+  },
+  "american.atm_call_1y.BT": {
+    "delta": 0.587,
+    "gamma": 0.054,
+    "price": 9.217,
+    "rho": 49.804,
+    "theta": -5.03,
+    "vega": 37.859
+  },
+  "american.atm_call_1y.FD": {
+    "delta": {
+      "first": 1.0,
+      "last": 0.0,
+      "mid": 0.969,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 200.0,
+      "last": 0.0,
+      "mid": 52.021,
+      "shape": 300
+    },
+    "rho": {
+      "first": 18.026,
+      "last": 0.0,
+      "mid": 92.77,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.0,
+      "last": -0.0,
+      "mid": -2.101,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 4.616,
+      "shape": 300
+    }
+  },
+  "american.atm_call_1y.LSMC": {
+    "delta": 0.561,
+    "gamma": 0.072,
+    "price": 9.097,
+    "rho": 60.15,
+    "theta": -4.984,
+    "vega": 36.839
+  },
+  "american.atm_call_1y.TT": {
+    "delta": 0.587,
+    "gamma": 0.046,
+    "price": 9.218,
+    "rho": 49.819,
+    "theta": -5.03,
+    "vega": 37.859
+  },
+  "american.atm_put_1y.BT": {
+    "delta": -0.424,
+    "gamma": 0.046,
+    "price": 6.656,
+    "rho": -33.603,
+    "theta": -2.644,
+    "vega": 38.012
+  },
+  "american.atm_put_1y.FD": {
+    "delta": {
+      "first": -0.0,
+      "last": -1.0,
+      "mid": -0.011,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 0.0,
+      "last": 99.0,
+      "mid": 0.124,
+      "shape": 300
+    },
+    "rho": {
+      "first": -0.0,
+      "last": 0.0,
+      "mid": -1.657,
+      "shape": 300
+    },
+    "theta": {
+      "first": -0.0,
+      "last": 0.0,
+      "mid": -0.384,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 4.688,
+      "shape": 300
+    }
+  },
+  "american.atm_put_1y.LSMC": {
+    "delta": -0.418,
+    "gamma": 0.042,
+    "price": 6.607,
+    "rho": -33.191,
+    "theta": -2.649,
+    "vega": 37.088
+  },
+  "american.atm_put_1y.TT": {
+    "delta": -0.423,
+    "gamma": 0.042,
+    "price": 6.652,
+    "rho": -33.635,
+    "theta": -2.642,
+    "vega": 37.996
+  },
+  "american.high_vol_call_3m.BT": {
+    "delta": 0.563,
+    "gamma": 0.056,
+    "price": 12.019,
+    "rho": 11.079,
+    "theta": -22.946,
+    "vega": 19.672
+  },
+  "american.high_vol_call_3m.FD": {
+    "delta": {
+      "first": 1.0,
+      "last": 0.0,
+      "mid": 0.936,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.003,
+      "shape": 300
+    },
+    "price": {
+      "first": 200.248,
+      "last": 0.0,
+      "mid": 51.658,
+      "shape": 300
+    },
+    "rho": {
+      "first": 24.519,
+      "last": 0.0,
+      "mid": 21.818,
+      "shape": 300
+    },
+    "theta": {
+      "first": -1.096,
+      "last": -0.0,
+      "mid": -12.063,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.076,
+      "last": 0.0,
+      "mid": 9.428,
+      "shape": 300
+    }
+  },
+  "american.high_vol_call_3m.LSMC": {
+    "delta": 0.549,
+    "gamma": 0.054,
+    "price": 11.912,
+    "rho": 9.544,
+    "theta": -23.249,
+    "vega": 23.798
+  },
+  "american.high_vol_call_3m.TT": {
+    "delta": 0.563,
+    "gamma": 0.048,
+    "price": 12.019,
+    "rho": 11.08,
+    "theta": -22.946,
+    "vega": 19.673
+  },
+  "american.itm_call_1y.BT": {
+    "delta": 0.861,
+    "gamma": 0.0,
+    "price": 24.066,
+    "rho": 79.21,
+    "theta": -4.223,
+    "vega": 23.84
+  },
+  "american.itm_call_1y.FD": {
+    "delta": {
+      "first": 1.0,
+      "last": 0.0,
+      "mid": 0.969,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 200.0,
+      "last": 0.0,
+      "mid": 52.021,
+      "shape": 300
+    },
+    "rho": {
+      "first": 18.026,
+      "last": 0.0,
+      "mid": 92.77,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.0,
+      "last": -0.0,
+      "mid": -2.101,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 4.616,
+      "shape": 300
+    }
+  },
+  "american.itm_call_1y.LSMC": {
+    "delta": 0.971,
+    "gamma": -0.123,
+    "price": 23.975,
+    "rho": 87.299,
+    "theta": -0.155,
+    "vega": 1.16
+  },
+  "american.itm_call_1y.TT": {
+    "delta": 0.861,
+    "gamma": 0.0,
+    "price": 24.064,
+    "rho": 79.211,
+    "theta": -4.223,
+    "vega": 23.834
+  },
+  "american.itm_put_6m.BT": {
+    "delta": -0.795,
+    "gamma": 0.006,
+    "price": 21.405,
+    "rho": -21.571,
+    "theta": -4.056,
+    "vega": 15.732
+  },
+  "american.itm_put_6m.FD": {
+    "delta": {
+      "first": -0.0,
+      "last": -1.0,
+      "mid": -0.034,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.002,
+      "shape": 300
+    },
+    "price": {
+      "first": 0.0,
+      "last": 99.0,
+      "mid": 0.541,
+      "shape": 300
+    },
+    "rho": {
+      "first": -0.001,
+      "last": 0.0,
+      "mid": -2.619,
+      "shape": 300
+    },
+    "theta": {
+      "first": -0.002,
+      "last": 0.0,
+      "mid": -2.613,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.004,
+      "last": 0.0,
+      "mid": 8.127,
+      "shape": 300
+    }
+  },
+  "american.itm_put_6m.LSMC": {
+    "delta": -0.812,
+    "gamma": -0.011,
+    "price": 21.453,
+    "rho": -23.016,
+    "theta": -3.762,
+    "vega": 12.225
+  },
+  "american.itm_put_6m.TT": {
+    "delta": -0.793,
+    "gamma": 0.009,
+    "price": 21.401,
+    "rho": -21.625,
+    "theta": -4.045,
+    "vega": 15.709
+  },
+  "american.low_vol_call_1y.BT": {
+    "delta": 0.791,
+    "gamma": 0.022,
+    "price": 8.761,
+    "rho": 70.692,
+    "theta": -3.266,
+    "vega": 27.489
+  },
+  "american.low_vol_call_1y.FD": {
+    "delta": {
+      "first": 1.0,
+      "last": 0.0,
+      "mid": 0.98,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.0,
+      "shape": 300
+    },
+    "price": {
+      "first": 205.0,
+      "last": 0.0,
+      "mid": 56.657,
+      "shape": 300
+    },
+    "rho": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 89.802,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.0,
+      "last": -0.0,
+      "mid": -1.499,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    }
+  },
+  "american.low_vol_call_1y.LSMC": {
+    "delta": 0.789,
+    "gamma": 0.022,
+    "price": 8.737,
+    "rho": 70.46,
+    "theta": -3.181,
+    "vega": 26.746
+  },
+  "american.low_vol_call_1y.TT": {
+    "delta": 0.787,
+    "gamma": 0.026,
+    "price": 8.758,
+    "rho": 70.727,
+    "theta": -3.227,
+    "vega": 26.765
+  },
+  "american.otm_call_1y.BT": {
+    "delta": 0.191,
+    "gamma": 0.028,
+    "price": 1.527,
+    "rho": 13.818,
+    "theta": -2.639,
+    "vega": 22.762
+  },
+  "american.otm_call_1y.FD": {
+    "delta": {
+      "first": 1.0,
+      "last": 0.0,
+      "mid": 0.969,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 200.0,
+      "last": 0.0,
+      "mid": 52.021,
+      "shape": 300
+    },
+    "rho": {
+      "first": 18.026,
+      "last": 0.0,
+      "mid": 92.77,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.0,
+      "last": -0.0,
+      "mid": -2.101,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 4.616,
+      "shape": 300
+    }
+  },
+  "american.otm_call_1y.LSMC": {
+    "raises": "LinAlgError"
+  },
+  "american.otm_call_1y.TT": {
+    "delta": 0.19,
+    "gamma": 0.026,
+    "price": 1.528,
+    "rho": 13.856,
+    "theta": -2.541,
+    "vega": 21.782
+  },
+  "american.otm_put_2y.BT": {
+    "delta": -0.15,
+    "gamma": 0.001,
+    "price": 4.513,
+    "rho": -41.933,
+    "theta": -2.253,
+    "vega": 42.153
+  },
+  "american.otm_put_2y.FD": {
+    "delta": {
+      "first": -0.001,
+      "last": -1.0,
+      "mid": -0.079,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.003,
+      "shape": 300
+    },
+    "price": {
+      "first": 0.023,
+      "last": 99.0,
+      "mid": 2.218,
+      "shape": 300
+    },
+    "rho": {
+      "first": -0.434,
+      "last": 0.0,
+      "mid": -24.664,
+      "shape": 300
+    },
+    "theta": {
+      "first": -0.069,
+      "last": 0.0,
+      "mid": -1.638,
+      "shape": 300
+    },
+    "vega": {
+      "first": 1.268,
+      "last": 0.0,
+      "mid": 31.124,
+      "shape": 300
+    }
+  },
+  "american.otm_put_2y.LSMC": {
+    "raises": "LinAlgError"
+  },
+  "american.otm_put_2y.TT": {
+    "delta": -0.155,
+    "gamma": 0.018,
+    "price": 4.5,
+    "rho": -41.869,
+    "theta": -2.276,
+    "vega": 43.476
+  },
+  "european.atm_call_1y.BSM": {
+    "delta": 0.587,
+    "gamma": 0.019,
+    "price": 9.227,
+    "rho": 49.458,
+    "theta": -5.089,
+    "vega": 37.901
+  },
+  "european.atm_call_1y.BT": {
+    "delta": 0.587,
+    "gamma": 0.054,
+    "price": 9.217,
+    "rho": 49.804,
+    "theta": -5.03,
+    "vega": 37.859
+  },
+  "european.atm_call_1y.FD": {
+    "delta": {
+      "first": 0.982,
+      "last": 0.0,
+      "mid": 0.969,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 199.588,
+      "last": 0.0,
+      "mid": 52.021,
+      "shape": 300
+    },
+    "rho": {
+      "first": 95.889,
+      "last": 0.0,
+      "mid": 92.812,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.144,
+      "last": -0.0,
+      "mid": -2.1,
+      "shape": 300
+    },
+    "vega": {
+      "first": 2.81,
+      "last": 0.0,
+      "mid": 4.604,
+      "shape": 300
+    }
+  },
+  "european.atm_call_1y.MC": {
+    "delta": 0.639,
+    "gamma": 0.02,
+    "price": 10.312,
+    "rho": 53.956,
+    "theta": -7.052,
+    "vega": 36.622
+  },
+  "european.atm_call_1y.TT": {
+    "delta": 0.587,
+    "gamma": 0.046,
+    "price": 9.218,
+    "rho": 49.819,
+    "theta": -5.03,
+    "vega": 37.859
+  },
+  "european.atm_put_1y.BSM": {
+    "delta": -0.393,
+    "gamma": 0.019,
+    "price": 6.33,
+    "rho": -45.665,
+    "theta": -2.294,
+    "vega": 37.901
+  },
+  "european.atm_put_1y.BT": {
+    "delta": -0.393,
+    "gamma": 0.054,
+    "price": 6.32,
+    "rho": -45.081,
+    "theta": -2.239,
+    "vega": 37.859
+  },
+  "european.atm_put_1y.FD": {
+    "delta": {
+      "first": -0.0,
+      "last": -0.98,
+      "mid": -0.011,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 0.0,
+      "last": 94.182,
+      "mid": 0.121,
+      "shape": 300
+    },
+    "rho": {
+      "first": -0.0,
+      "last": -94.538,
+      "mid": -1.717,
+      "shape": 300
+    },
+    "theta": {
+      "first": -0.0,
+      "last": 4.487,
+      "mid": -0.374,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.0,
+      "last": 0.007,
+      "mid": 4.603,
+      "shape": 300
+    }
+  },
+  "european.atm_put_1y.MC": {
+    "delta": -0.361,
+    "gamma": 0.02,
+    "price": 5.475,
+    "rho": -40.929,
+    "theta": -2.334,
+    "vega": 37.021
+  },
+  "european.atm_put_1y.TT": {
+    "delta": -0.393,
+    "gamma": 0.046,
+    "price": 6.321,
+    "rho": -45.066,
+    "theta": -2.24,
+    "vega": 37.859
+  },
+  "european.high_vol_call_3m.BSM": {
+    "delta": 0.563,
+    "gamma": 0.013,
+    "price": 12.034,
+    "rho": 11.064,
+    "theta": -24.081,
+    "vega": 19.699
+  },
+  "european.high_vol_call_3m.BT": {
+    "delta": 0.563,
+    "gamma": 0.056,
+    "price": 12.019,
+    "rho": 11.079,
+    "theta": -22.946,
+    "vega": 19.672
+  },
+  "european.high_vol_call_3m.FD": {
+    "delta": {
+      "first": 1.0,
+      "last": 0.0,
+      "mid": 0.936,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.003,
+      "shape": 300
+    },
+    "price": {
+      "first": 200.248,
+      "last": 0.0,
+      "mid": 51.658,
+      "shape": 300
+    },
+    "rho": {
+      "first": 24.519,
+      "last": 0.0,
+      "mid": 21.818,
+      "shape": 300
+    },
+    "theta": {
+      "first": -1.096,
+      "last": -0.0,
+      "mid": -12.063,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.076,
+      "last": 0.0,
+      "mid": 9.428,
+      "shape": 300
+    }
+  },
+  "european.high_vol_call_3m.MC": {
+    "delta": 0.563,
+    "gamma": 0.014,
+    "price": 12.003,
+    "rho": 11.094,
+    "theta": -20.298,
+    "vega": 19.648
+  },
+  "european.high_vol_call_3m.TT": {
+    "delta": 0.563,
+    "gamma": 0.048,
+    "price": 12.019,
+    "rho": 11.08,
+    "theta": -22.946,
+    "vega": 19.673
+  },
+  "european.itm_call_1y.BSM": {
+    "delta": 0.86,
+    "gamma": 0.008,
+    "price": 24.061,
+    "rho": 79.131,
+    "theta": -4.283,
+    "vega": 28.68
+  },
+  "european.itm_call_1y.BT": {
+    "delta": 0.861,
+    "gamma": 0.0,
+    "price": 24.066,
+    "rho": 79.21,
+    "theta": -4.223,
+    "vega": 23.84
+  },
+  "european.itm_call_1y.FD": {
+    "delta": {
+      "first": 0.982,
+      "last": 0.0,
+      "mid": 0.969,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 199.588,
+      "last": 0.0,
+      "mid": 52.021,
+      "shape": 300
+    },
+    "rho": {
+      "first": 95.889,
+      "last": 0.0,
+      "mid": 92.812,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.144,
+      "last": -0.0,
+      "mid": -2.1,
+      "shape": 300
+    },
+    "vega": {
+      "first": 2.81,
+      "last": 0.0,
+      "mid": 4.604,
+      "shape": 300
+    }
+  },
+  "european.itm_call_1y.MC": {
+    "delta": 0.899,
+    "gamma": 0.007,
+    "price": 26.094,
+    "rho": 81.827,
+    "theta": -6.121,
+    "vega": 20.93
+  },
+  "european.itm_call_1y.TT": {
+    "delta": 0.861,
+    "gamma": 0.0,
+    "price": 24.064,
+    "rho": 79.212,
+    "theta": -4.223,
+    "vega": 23.834
+  },
+  "european.itm_put_6m.BSM": {
+    "delta": -0.763,
+    "gamma": 0.016,
+    "price": 20.955,
+    "rho": -41.014,
+    "theta": -3.646,
+    "vega": 13.959
+  },
+  "european.itm_put_6m.BT": {
+    "delta": -0.769,
+    "gamma": -0.0,
+    "price": 20.959,
+    "rho": -40.905,
+    "theta": -3.423,
+    "vega": 17.173
+  },
+  "european.itm_put_6m.FD": {
+    "delta": {
+      "first": -0.0,
+      "last": -1.0,
+      "mid": -0.034,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": -0.0,
+      "mid": 0.002,
+      "shape": 300
+    },
+    "price": {
+      "first": 0.0,
+      "last": 97.523,
+      "mid": 0.538,
+      "shape": 300
+    },
+    "rho": {
+      "first": -0.001,
+      "last": -48.81,
+      "mid": -2.746,
+      "shape": 300
+    },
+    "theta": {
+      "first": -0.002,
+      "last": 2.813,
+      "mid": -2.588,
+      "shape": 300
+    },
+    "vega": {
+      "first": 0.004,
+      "last": -0.0,
+      "mid": 8.082,
+      "shape": 300
+    }
+  },
+  "european.itm_put_6m.MC": {
+    "delta": -0.763,
+    "gamma": 0.016,
+    "price": 20.953,
+    "rho": -40.864,
+    "theta": -3.177,
+    "vega": 17.553
+  },
+  "european.itm_put_6m.TT": {
+    "delta": -0.766,
+    "gamma": 0.005,
+    "price": 20.958,
+    "rho": -40.896,
+    "theta": -3.422,
+    "vega": 17.169
+  },
+  "european.low_vol_call_1y.BSM": {
+    "delta": 0.79,
+    "gamma": 0.027,
+    "price": 8.758,
+    "rho": 70.237,
+    "theta": -3.279,
+    "vega": 28.366
+  },
+  "european.low_vol_call_1y.BT": {
+    "delta": 0.791,
+    "gamma": 0.022,
+    "price": 8.761,
+    "rho": 70.692,
+    "theta": -3.266,
+    "vega": 27.489
+  },
+  "european.low_vol_call_1y.FD": {
+    "delta": {
+      "first": 0.981,
+      "last": 0.0,
+      "mid": 0.98,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.0,
+      "shape": 300
+    },
+    "price": {
+      "first": 204.058,
+      "last": 0.0,
+      "mid": 56.657,
+      "shape": 300
+    },
+    "rho": {
+      "first": 91.345,
+      "last": 0.0,
+      "mid": 89.802,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.77,
+      "last": -0.0,
+      "mid": -1.499,
+      "shape": 300
+    },
+    "vega": {
+      "first": 2.928,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    }
+  },
+  "european.low_vol_call_1y.MC": {
+    "delta": 0.859,
+    "gamma": 0.022,
+    "price": 10.378,
+    "rho": 75.986,
+    "theta": -4.72,
+    "vega": 22.415
+  },
+  "european.low_vol_call_1y.TT": {
+    "delta": 0.787,
+    "gamma": 0.026,
+    "price": 8.758,
+    "rho": 70.727,
+    "theta": -3.227,
+    "vega": 26.765
+  },
+  "european.otm_call_1y.BSM": {
+    "delta": 0.189,
+    "gamma": 0.017,
+    "price": 1.531,
+    "rho": 13.629,
+    "theta": -2.529,
+    "vega": 17.205
+  },
+  "european.otm_call_1y.BT": {
+    "delta": 0.191,
+    "gamma": 0.028,
+    "price": 1.527,
+    "rho": 13.818,
+    "theta": -2.639,
+    "vega": 22.762
+  },
+  "european.otm_call_1y.FD": {
+    "delta": {
+      "first": 0.982,
+      "last": 0.0,
+      "mid": 0.969,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.0,
+      "mid": 0.001,
+      "shape": 300
+    },
+    "price": {
+      "first": 199.588,
+      "last": 0.0,
+      "mid": 52.021,
+      "shape": 300
+    },
+    "rho": {
+      "first": 95.889,
+      "last": 0.0,
+      "mid": 92.812,
+      "shape": 300
+    },
+    "theta": {
+      "first": 0.144,
+      "last": -0.0,
+      "mid": -2.1,
+      "shape": 300
+    },
+    "vega": {
+      "first": 2.81,
+      "last": 0.0,
+      "mid": 4.604,
+      "shape": 300
+    }
+  },
+  "european.otm_call_1y.MC": {
+    "delta": 0.216,
+    "gamma": 0.018,
+    "price": 1.819,
+    "rho": 15.696,
+    "theta": -3.107,
+    "vega": 23.42
+  },
+  "european.otm_call_1y.TT": {
+    "delta": 0.19,
+    "gamma": 0.026,
+    "price": 1.528,
+    "rho": 13.856,
+    "theta": -2.541,
+    "vega": 21.782
+  },
+  "european.otm_put_2y.BSM": {
+    "delta": -0.152,
+    "gamma": 0.005,
+    "price": 4.399,
+    "rho": -48.321,
+    "theta": -2.212,
+    "vega": 54.697
+  },
+  "european.otm_put_2y.BT": {
+    "delta": -0.144,
+    "gamma": 0.0,
+    "price": 4.402,
+    "rho": -47.247,
+    "theta": -2.122,
+    "vega": 41.013
+  },
+  "european.otm_put_2y.FD": {
+    "delta": {
+      "first": -0.001,
+      "last": -0.916,
+      "mid": -0.077,
+      "shape": 300
+    },
+    "gamma": {
+      "first": 0.0,
+      "last": 0.003,
+      "mid": 0.003,
+      "shape": 300
+    },
+    "price": {
+      "first": 0.023,
+      "last": 89.663,
+      "mid": 2.175,
+      "shape": 300
+    },
+    "rho": {
+      "first": -0.442,
+      "last": -179.825,
+      "mid": -26.731,
+      "shape": 300
+    },
+    "theta": {
+      "first": -0.068,
+      "last": 4.227,
+      "mid": -1.578,
+      "shape": 300
+    },
+    "vega": {
+      "first": 1.258,
+      "last": 0.066,
+      "mid": 30.497,
+      "shape": 300
+    }
+  },
+  "european.otm_put_2y.MC": {
+    "delta": -0.114,
+    "gamma": 0.004,
+    "price": 3.011,
+    "rho": -34.705,
+    "theta": -0.525,
+    "vega": 35.758
+  },
+  "european.otm_put_2y.TT": {
+    "delta": -0.149,
+    "gamma": 0.019,
+    "price": 4.39,
+    "rho": -47.201,
+    "theta": -2.133,
+    "vega": 42.33
+  }
+}

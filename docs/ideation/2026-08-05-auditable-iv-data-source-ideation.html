@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ideation: An Auditable Implied-Volatility Data Source</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --ink: #1c1b19;
+    --ink-soft: #5c5952;
+    --rule: #e3dfd8;
+    --accent: #7a4a1e;
+    --accent-soft: #f6ede3;
+    --accent-text: #6b3f18;
+    --warn-soft: #fdf3e3;
+    --warn-text: #7a5a12;
+    --info-soft: #eaf0f4;
+    --info-text: #2e4a5c;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161513;
+      --surface: #1f1e1b;
+      --ink: #ece8e1;
+      --ink-soft: #a29d94;
+      --rule: #34322d;
+      --accent: #d9a468;
+      --accent-soft: #2c2419;
+      --accent-text: #e0b483;
+      --warn-soft: #2b2416;
+      --warn-text: #d9bb7a;
+      --info-soft: #1c262c;
+      --info-text: #9fc2d6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 ui-serif, Georgia, "Iowan Old Style", serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 62rem; margin-inline: auto; padding: 3rem 1.5rem 5rem; }
+  p, li { max-width: 70ch; }
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: .2rem 0 .6rem; letter-spacing: -.015em; }
+  h2 {
+    font-size: 1.32rem; margin: 3rem 0 1rem; padding-bottom: .4rem;
+    border-bottom: 2px solid var(--rule); letter-spacing: -.01em;
+  }
+  h3 { font-size: 1.08rem; margin: 0 0 .5rem; letter-spacing: -.005em; }
+  .eyebrow {
+    font: 600 .72rem/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--accent-text);
+    margin-bottom: .5rem;
+  }
+  .meta {
+    font: .84rem/1.9 ui-sans-serif, system-ui, sans-serif; color: var(--ink-soft);
+    border-left: 3px solid var(--rule); padding-left: 1rem; margin: 1.4rem 0 0;
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+  .stats { display: flex; flex-wrap: wrap; gap: .6rem; margin: 2rem 0 0; padding: 0; list-style: none; }
+  .stats li {
+    background: var(--accent-soft); color: var(--accent-text);
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: .3rem .85rem; font: 600 .78rem/1.5 ui-sans-serif, system-ui, sans-serif;
+  }
+  .jump { margin: 0 0 2rem; padding: 0; list-style: none; font: .88rem/1.9 ui-sans-serif, system-ui, sans-serif; }
+  .jump a { color: var(--accent-text); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .jump a:hover { border-bottom-color: var(--accent); }
+  .jump .n { display: inline-block; width: 1.5rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  article.idea {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1.5rem 1.6rem; margin: 0 0 1.5rem;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 .9rem; padding: 0; list-style: none; }
+  .chips li {
+    border: 1px solid var(--rule); border-radius: 999px; padding: .18rem .7rem;
+    font: 600 .72rem/1.6 ui-sans-serif, system-ui, sans-serif;
+    background: var(--info-soft); color: var(--info-text);
+  }
+  .chips li.rank { background: var(--accent-soft); color: var(--accent-text); }
+  dl.fields { margin: 1rem 0 0; }
+  dl.fields dt {
+    font: 600 .72rem/1.6 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft);
+    margin-top: 1rem;
+  }
+  dl.fields dd { margin: .2rem 0 0; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; }
+  .basis { border-left: 3px solid var(--accent); padding-left: .9rem; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font: 600 .74rem/1.6 ui-sans-serif, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+  .axes { list-style: none; padding: 0; margin: 1rem 0; }
+  .axes li { padding: .5rem 0 .5rem 1.6rem; border-bottom: 1px solid var(--rule); position: relative; max-width: 70ch; }
+  .axes li b { font-weight: 600; }
+  figure { margin: 1.3rem 0 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font: .8rem/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--ink-soft); margin-top: .5rem; max-width: 70ch; }
+  .callout {
+    background: var(--warn-soft); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 1rem 1.2rem; margin: 1.5rem 0;
+  }
+  .callout .eyebrow { color: var(--warn-text); }
+  .callout p { margin: 0; }
+  footer.composition-signal {
+    margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+    font: .78rem/1.7 ui-sans-serif, system-ui, sans-serif; color: var(--ink-soft);
+  }
+  a { color: var(--accent-text); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<p class="eyebrow">Ideation</p>
+<h1>An Auditable Implied-Volatility Data Source</h1>
+
+<p class="meta">
+  <b>Date</b> <time datetime="2026-08-05">2026-08-05</time><br>
+  <b>Topic</b> auditable-iv-data-source<br>
+  <b>Focus</b> Where the product goes next, against the tracks in <code>STRATEGY.md</code><br>
+  <b>Mode</b> repo-grounded
+</p>
+
+<ul class="stats">
+  <li>39 candidates</li>
+  <li>6 survivors</li>
+  <li>33 cut</li>
+  <li>5 axes covered</li>
+</ul>
+
+<section id="grounding">
+<h2>Grounding Context</h2>
+
+<h3>Codebase Context</h3>
+<p>
+  A Python 3.12 option-pricing library, <code>pricing/</code>, with six methods split by exercise
+  style: closed-form Black-Scholes-Merton, binomial and trinomial trees, Monte Carlo with
+  antithetic variates, Longstaff-Schwartz least-squares Monte Carlo, and Crank-Nicolson finite
+  differences. Every method returns one <code>PriceResult</code> — a scalar price at the
+  contract's spot plus its Greeks. 1,719 tests pass in about three minutes; none touch the network.
+</p>
+<p>
+  Foundation is complete. Four pricing defects were found and fixed, and the 152 pre-fix failures
+  were captured and committed so the suite's diagnostic power is checkable rather than asserted.
+  Convergence evidence is generated by <code>scripts/generate_evidence.py</code> and verified
+  byte-for-byte in the test suite. The four tree methods run 19.6× to 64.7× faster after
+  vectorization, with equivalence to the scalar loops asserted as exact equality.
+</p>
+<p>
+  Two of the three strategy tracks are largely unbuilt: the archive has zero days of history, and
+  there is no access layer at all. A Flask calculator is the only consumer today.
+</p>
+
+<h3>Provider spike, first observation</h3>
+<p>
+  30 requests against yfinance over six candidate symbols, no failures, 3,681 contracts.
+  <b>69.1% carried both a non-zero bid and a non-zero ask.</b> Three findings shape several ideas
+  below: <code>ask</code> is populated on 100% of contracts, so the quality gate is a rule about
+  bids alone; expiry-day contracts are a distinct population at 42% two-sided against 76–83%
+  further out; and <code>lastTradeDate</code> is 100% populated but times <em>trades</em>, not
+  quotes, so it is a liquidity signal rather than a freshness one. The provider also returns its
+  own <code>impliedVolatility</code> on 100% of contracts.
+</p>
+
+<h3>External context</h3>
+<p>
+  Exchanges do not publish IV or Greeks at all —
+  <a href="https://www.marketdata.app/education/options/differences-in-iv-greeks/">marketdata.app</a>
+  states plainly that traders see different numbers across platforms because "everyone is using
+  different methods and assumptions." A
+  <a href="https://quantnet.com/threads/implied-volatility-calculation-using-quantlib-but-doesnt-match-bloomberg-ivol.63648/">QuantNet thread</a>
+  puts a magnitude on the American case: QuantLib returned 141.3 where Bloomberg showed 116.124 for
+  the same American call, a 22% gap, with the exercise-style assumption named as the suspect.
+  Commercial history is real money —
+  <a href="https://alphanume.com/blog/orats-alternatives-options-analytics-and-volatility-data-providers">IVolatility around $50/month, ORATS $100+/month</a>,
+  OptionMetrics institutional-only. <a href="https://eodhd.com/lp/us-stock-options-api">EODHD</a>
+  offers roughly 2.5 years of contract-level history with pre-computed Greeks and IV.
+</p>
+</section>
+
+<section id="axes">
+<h2>Topic Axes</h2>
+<ul class="axes">
+  <li><b>Provenance and re-derivation</b> — storing raw verbatim, engine versioning, proving a number came from what it claims.</li>
+  <li><b>History acquisition</b> — how the archive gets built: live capture forward, backfill backward, gaps and continuity.</li>
+  <li><b>Derived signals</b> — what is computed on top: the surface, IV rank, rich-versus-cheap, skew, term structure.</li>
+  <li><b>Consumption</b> — how a signal builder actually gets the data and puts it into a backtest.</li>
+  <li><b>Engine reach</b> — what the pricer can price: exercise styles, dividends, inversion robustness, edge cases.</li>
+</ul>
+</section>
+
+<section id="ideas">
+<h2>Ranked Ideas</h2>
+
+<ul class="jump">
+  <li><span class="n">1.</span><a href="#idea-1">Vendor disagreement, attributed</a></li>
+  <li><span class="n">2.</span><a href="#idea-2">The verifier — reproduce any published row</a></li>
+  <li><span class="n">3.</span><a href="#idea-3">Publish the early-exercise premium as a column</a></li>
+  <li><span class="n">4.</span><a href="#idea-4">One symbol, exhaustively</a></li>
+  <li><span class="n">5.</span><a href="#idea-5">Reanalysis releases</a></li>
+  <li><span class="n">6.</span><a href="#idea-6">Engine-as-product, as a licensing hedge</a></li>
+</ul>
+
+<article class="idea" id="idea-1">
+  <ul class="chips">
+    <li class="rank">1</li><li>Provenance and re-derivation</li><li>Confidence 85%</li><li>Complexity Medium</li>
+  </ul>
+  <h3>Vendor disagreement, attributed</h3>
+
+  <figure>
+    <svg viewBox="0 0 720 220" role="img" aria-label="One contract producing three different implied volatilities, with the disagreement attributed to four named assumptions.">
+      <defs>
+        <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#8a857c"/>
+        </marker>
+      </defs>
+      <rect x="8" y="80" width="150" height="56" rx="7" fill="#eaf0f4" stroke="#b8c6ce"/>
+      <text x="83" y="103" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="12" font-weight="600" fill="#2e4a5c">One contract</text>
+      <text x="83" y="121" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#2e4a5c">AAPL 250C 18SEP26</text>
+
+      <line x1="162" y1="108" x2="232" y2="42" stroke="#8a857c" stroke-width="1.3" marker-end="url(#ar1)"/>
+      <line x1="162" y1="108" x2="232" y2="108" stroke="#8a857c" stroke-width="1.3" marker-end="url(#ar1)"/>
+      <line x1="162" y1="108" x2="232" y2="174" stroke="#8a857c" stroke-width="1.3" marker-end="url(#ar1)"/>
+
+      <rect x="238" y="18" width="176" height="48" rx="7" fill="#ffffff" stroke="#d8d3ca"/>
+      <text x="252" y="38" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#5c5952">Provider IV column</text>
+      <text x="252" y="56" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#1c1b19">0.2841</text>
+
+      <rect x="238" y="84" width="176" height="48" rx="7" fill="#ffffff" stroke="#d8d3ca"/>
+      <text x="252" y="104" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#5c5952">Your broker</text>
+      <text x="252" y="122" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#1c1b19">0.2903</text>
+
+      <rect x="238" y="150" width="176" height="48" rx="7" fill="#f6ede3" stroke="#c9a67c"/>
+      <text x="252" y="170" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#6b3f18">This library</text>
+      <text x="252" y="188" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#6b3f18">0.2769</text>
+
+      <line x1="420" y1="42" x2="486" y2="96" stroke="#8a857c" stroke-width="1.3" marker-end="url(#ar1)"/>
+      <line x1="420" y1="108" x2="486" y2="108" stroke="#8a857c" stroke-width="1.3" marker-end="url(#ar1)"/>
+      <line x1="420" y1="174" x2="486" y2="120" stroke="#8a857c" stroke-width="1.3" marker-end="url(#ar1)"/>
+
+      <rect x="492" y="40" width="220" height="136" rx="7" fill="#f6ede3" stroke="#c9a67c"/>
+      <text x="506" y="62" font-family="ui-sans-serif,system-ui" font-size="11.5" font-weight="700" fill="#6b3f18">Attributed to</text>
+      <text x="506" y="84" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#6b3f18">· rate curve used</text>
+      <text x="506" y="104" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#6b3f18">· dividend assumption</text>
+      <text x="506" y="124" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#6b3f18">· American vs European</text>
+      <text x="506" y="144" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#6b3f18">· mid vs last vs bid</text>
+      <text x="506" y="166" font-family="ui-sans-serif,system-ui" font-size="10.5" font-style="italic" fill="#8a6a3c">each re-derivable from the archive</text>
+    </svg>
+    <figcaption>Illustrative. The product is not the third number — it is the fourth box.</figcaption>
+  </figure>
+
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Store the provider's own IV alongside every captured quote, compute your own, and publish
+    the difference as a first-class column — then attribute the gap to its cause by re-pricing under
+    each competing assumption in turn. A user sees not just that the numbers differ but which
+    assumption accounts for how much of the gap.</dd>
+
+    <dt>Axis</dt>
+    <dd>Provenance and re-derivation</dd>
+
+    <dt>Basis</dt>
+    <dd class="basis"><code>direct:</code> the provider spike found <code>impliedVolatility</code>
+    populated on 100% of 3,681 contracts, so the comparison input is already free and already being
+    fetched. <code>external:</code> marketdata.app attributes cross-platform IV differences to
+    "different methods and assumptions" but publishes no attribution; nothing found in the search
+    does.</dd>
+
+    <dt>Rationale</dt>
+    <dd>This is the entire strategy demonstrated on day one, before a single day of history has
+    accrued. Every other idea here needs an archive first; this one needs one capture. It also
+    converts the product's core claim from an assertion a reader must accept into a number they can
+    look at, which is exactly the gap the target problem names.</dd>
+
+    <dt>Downsides</dt>
+    <dd>Attribution requires re-pricing each contract several times, multiplying engine cost per
+    capture. Naming a competitor's number as wrong invites argument you must be able to win, so the
+    attribution has to be right. And a provider that stops publishing IV removes the input.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="idea-2">
+  <ul class="chips">
+    <li class="rank">2</li><li>Provenance and re-derivation</li><li>Confidence 80%</li><li>Complexity Medium</li>
+  </ul>
+  <h3>The verifier — reproduce any published row</h3>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>A single command that takes one published row, pulls the archived raw quote and the stamped
+    engine version it names, recomputes the number, and prints match or mismatch. Ship it as a CLI
+    first; a WebAssembly build later lets a stranger verify in a browser tab with nothing installed
+    and no trust extended.</dd>
+
+    <dt>Axis</dt>
+    <dd>Provenance and re-derivation</dd>
+
+    <dt>Basis</dt>
+    <dd class="basis"><code>external:</code> reproducible builds in software supply chain, where the
+    claim "this binary came from this source" is worthless as an assertion and load-bearing as a
+    rerunnable check. <code>direct:</code> the repository already does this to itself —
+    <code>scripts/generate_evidence.py --check</code> regenerates the convergence artifact and
+    fails the test suite if it differs, so the pattern is built and proven on a smaller surface.</dd>
+
+    <dt>Rationale</dt>
+    <dd>The strategy says auditability is the guiding policy and accuracy is what it makes provable.
+    Nothing converts that from positioning into product faster than a button. It also changes the
+    sales conversation: instead of asking to be believed over ORATS, you hand over a command.</dd>
+
+    <dt>Downsides</dt>
+    <dd>It sets a standard you must then never break — a verifier that fails on your own historical
+    rows is worse than never having shipped one, which forces engine-version discipline earlier
+    than would otherwise be comfortable. The WASM build is real work and the pricing library is
+    NumPy and SciPy, so a browser build likely means a reimplementation rather than a port.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="idea-3">
+  <ul class="chips">
+    <li class="rank">3</li><li>Engine reach</li><li>Confidence 75%</li><li>Complexity Medium</li>
+  </ul>
+  <h3>Publish the early-exercise premium as a column</h3>
+
+  <figure>
+    <svg viewBox="0 0 720 200" role="img" aria-label="Bar chart contrasting an implied volatility of 141.3 from a European formula against 116.124 from correct American treatment for the same contract.">
+      <line x1="150" y1="24" x2="150" y2="150" stroke="#d8d3ca" stroke-width="1"/>
+      <rect x="150" y="36" width="430" height="34" rx="4" fill="#fdf3e3" stroke="#d3b174"/>
+      <text x="146" y="58" text-anchor="end" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#5c5952">European formula</text>
+      <text x="592" y="58" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#7a5a12">141.3</text>
+
+      <rect x="150" y="96" width="353" height="34" rx="4" fill="#f6ede3" stroke="#c9a67c"/>
+      <text x="146" y="118" text-anchor="end" font-family="ui-sans-serif,system-ui" font-size="11.5" fill="#5c5952">American, correctly</text>
+      <text x="515" y="118" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#6b3f18">116.124</text>
+
+      <line x1="503" y1="138" x2="580" y2="138" stroke="#8a857c" stroke-width="1"/>
+      <line x1="503" y1="132" x2="503" y2="144" stroke="#8a857c" stroke-width="1"/>
+      <line x1="580" y1="132" x2="580" y2="144" stroke="#8a857c" stroke-width="1"/>
+      <text x="541" y="166" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="11.5" font-weight="600" fill="#1c1b19">22% gap</text>
+      <text x="541" y="184" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="10.5" font-style="italic" fill="#8a857c">one assumption, same contract</text>
+    </svg>
+    <figcaption>Illustrative, using the QuantLib-versus-Bloomberg figures reported on QuantNet. The size of the error is the argument.</figcaption>
+  </figure>
+
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>For every single-stock contract, publish both the American value and what the same contract
+    would be worth under European exercise, and expose the difference as its own column. Optionally
+    extend to a small set of named assumption bundles — a rate-curve choice, a dividend treatment —
+    so a user sees the sensitivity rather than one number presented as fact.</dd>
+
+    <dt>Axis</dt>
+    <dd>Engine reach</dd>
+
+    <dt>Basis</dt>
+    <dd class="basis"><code>external:</code> the QuantNet thread reports 141.3 against Bloomberg's
+    116.124 for one American call, with exercise style named as the suspect — a 22% error on a
+    number people size positions with. <code>direct:</code> this library already has three American
+    methods (binomial, trinomial, Longstaff-Schwartz) and a finite-difference solver that prices
+    American exercise correctly, so the second number costs a re-price, not a research project.</dd>
+
+    <dt>Rationale</dt>
+    <dd>It converts the accuracy half of the strategy into something a user can see rather than
+    trust, and it is the one claim here that competitors cannot cheaply match — a vendor inverting
+    with Black-Scholes cannot publish this column without admitting to it. It is also the most
+    direct use of the six-method engine, which is otherwise the project's largest sunk investment.</dd>
+
+    <dt>Downsides</dt>
+    <dd>Doubles or triples pricing cost per contract. The premium is near zero for most
+    out-of-the-money short-dated contracts, so the column reads as noise across much of the chain
+    and needs presenting carefully to avoid looking padded. It also invites the question of which
+    dividend model you used, which then has to be answered properly rather than defaulted.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="idea-4">
+  <ul class="chips">
+    <li class="rank">4</li><li>History acquisition</li><li>Confidence 80%</li><li>Complexity Low</li>
+  </ul>
+  <h3>One symbol, exhaustively</h3>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Rather than four to six symbols at four near expiries, take a single liquid underlying and
+    capture it completely — every expiry the provider lists, every strike, several times a day —
+    and publish an honest coverage map beside it showing what was two-sided, what was stale, and
+    what was missing at each capture.</dd>
+
+    <dt>Axis</dt>
+    <dd>History acquisition</dd>
+
+    <dt>Basis</dt>
+    <dd class="basis"><code>direct:</code> <code>STRATEGY.md</code> already names coverage breadth
+    as a non-goal — "three symbols someone can audit over three thousand they must take on faith."
+    The spike measured 32 expiries available for SPY against the four sampled, so the depth exists
+    and is not being taken. <code>direct:</code> the same spike found the two-sided fraction varies
+    from 42% to 89% by expiry, which means a coverage map carries real information rather than
+    being a formality.</dd>
+
+    <dt>Rationale</dt>
+    <dd>Depth is the shape of the strategy applied to the archive, and it makes everything else
+    cheaper: one symbol fixes N, bounds the rate-limit question, and makes intraday capture
+    affordable — which in turn makes the history genuinely differentiated, since the commercial
+    vendors sell end-of-day. It also converts the coverage weakness into published evidence
+    instead of an omission.</dd>
+
+    <dt>Downsides</dt>
+    <dd>A single-symbol dataset is much less useful to most people, and cross-sectional work
+    becomes impossible, which closes off some derived signals entirely. If the chosen symbol turns
+    out to be a bad representative, months of accrual are spent on the wrong name — and the whole
+    point of accruing is that you cannot re-run it.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="idea-5">
+  <ul class="chips">
+    <li class="rank">5</li><li>Derived signals</li><li>Confidence 65%</li><li>Complexity High</li>
+  </ul>
+  <h3>Reanalysis releases</h3>
+
+  <figure>
+    <svg viewBox="0 0 720 210" role="img" aria-label="An immutable raw quote archive spanning time, with three successive derived layers each recomputed across the full history by a newer engine version.">
+      <rect x="120" y="20" width="560" height="34" rx="5" fill="#eaf0f4" stroke="#b8c6ce"/>
+      <text x="112" y="42" text-anchor="end" font-family="ui-sans-serif,system-ui" font-size="11.5" font-weight="600" fill="#2e4a5c">Raw quotes</text>
+      <text x="400" y="42" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="11" fill="#2e4a5c">captured verbatim, never overwritten</text>
+
+      <rect x="120" y="76" width="560" height="28" rx="5" fill="#f6ede3" stroke="#c9a67c"/>
+      <text x="112" y="95" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#6b3f18">derived v1</text>
+      <rect x="120" y="112" width="560" height="28" rx="5" fill="#f6ede3" stroke="#c9a67c"/>
+      <text x="112" y="131" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#6b3f18">derived v2</text>
+      <rect x="120" y="148" width="560" height="28" rx="5" fill="#f0dfc8" stroke="#b8925e"/>
+      <text x="112" y="167" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#6b3f18">derived v3</text>
+      <text x="400" y="167" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="11" fill="#6b3f18">engine v3 reprices the entire history</text>
+
+      <text x="120" y="198" font-family="ui-sans-serif,system-ui" font-size="10.5" fill="#8a857c">Jan</text>
+      <text x="672" y="198" text-anchor="end" font-family="ui-sans-serif,system-ui" font-size="10.5" fill="#8a857c">today</text>
+    </svg>
+    <figcaption>Illustrative. Each derived layer spans the full archive, not just the period after the engine changed.</figcaption>
+  </figure>
+
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Treat the derived data as a rebuildable product rather than an accumulating one. When the
+    engine improves, reprocess the whole archive and publish it as a numbered, dated release
+    alongside the raw quotes and the previous releases, so a user can pin a version, cite it, and
+    diff two of them. Old releases stay published rather than being replaced.</dd>
+
+    <dt>Axis</dt>
+    <dd>Derived signals</dd>
+
+    <dt>Basis</dt>
+    <dd class="basis"><code>external:</code> climate reanalysis — ERA5 and its predecessors —
+    solves exactly this shape, reprocessing decades of unchanged raw observations with the current
+    best model and shipping numbered generations, because the observations and the interpretation
+    of them improve on different clocks. <code>direct:</code> the strategy already commits to
+    version-stamping the pricer and re-derivability from the archive, so the capability is a stated
+    requirement and this names the product built on it.</dd>
+
+    <dt>Rationale</dt>
+    <dd>A conventional vendor cannot retroactively improve history because they never kept the raw
+    inputs — their archive is their output. Keeping raw quotes verbatim means every engine fix
+    improves the entire past, which turns the four defects already fixed here from an embarrassment
+    into a demonstration of the mechanism. This is the strategy's deepest source of compounding.</dd>
+
+    <dt>Downsides</dt>
+    <dd>Real operational weight: storage multiplies per release, and users pinned to different
+    versions will report inconsistent numbers to each other. There is a subtle trap — a reanalysis
+    must not destroy point-in-time correctness, since a backtest needs what was knowable at the
+    time, not the best estimate computed later. That distinction has to be designed in, not
+    retrofitted. And with no history yet, this pays nothing for months.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="idea-6">
+  <ul class="chips">
+    <li class="rank">6</li><li>Consumption</li><li>Confidence 55%</li><li>Complexity Medium</li>
+  </ul>
+  <h3>Engine-as-product, as a licensing hedge</h3>
+  <dl class="fields">
+    <dt>Description</dt>
+    <dd>Package the pricer plus the verifier so a user can point it at option data they are already
+    entitled to — their broker feed, their EODHD subscription — and get the same auditable IVs
+    without you redistributing anything. The published dataset and the runnable engine become two
+    routes to the same output.</dd>
+
+    <dt>Axis</dt>
+    <dd>Consumption</dd>
+
+    <dt>Basis</dt>
+    <dd class="basis"><code>reasoned:</code> the strategy's archive track now depends on ingesting
+    third-party historical quotes and republishing values derived from them into a public
+    repository. Redistribution terms on historical options data are typically restrictive, and the
+    derived-work question is unresolved — flagged as open when the strategy was written. If that
+    resolves badly, the entire backfill half of the archive track is blocked, and the only asset
+    that survives is the engine. Building the engine path deliberately turns a single point of
+    failure into two routes.</dd>
+
+    <dt>Rationale</dt>
+    <dd>It is insurance on the most load-bearing unresolved risk in the strategy, and it happens to
+    serve a real audience anyway — the systematic trader who already pays for data and wants
+    trustworthy IVs from it, rather than another subscription. It also reaches users whose
+    compliance posture forbids third-party marks entirely, which is the "defensible number" segment
+    named as the later expansion.</dd>
+
+    <dt>Downsides</dt>
+    <dd>Value is contingent on a risk that may not materialize, and building against a hypothetical
+    is how projects acquire unused surface area. It also cuts against the data product: a user
+    running the engine on their own feed has no reason to buy your history. And supporting
+    arbitrary input formats is an open-ended maintenance commitment.</dd>
+  </dl>
+</article>
+</section>
+
+<section id="rejections">
+<h2>Rejection Summary</h2>
+
+<div class="callout">
+  <p class="eyebrow">Filtering note</p>
+  <p>Filtered by the orchestrator only — the fresh-context basis verifier was not dispatched, by
+  request. Verdicts here carry the generation history's anchoring bias, so a reader should treat
+  the confidence figures as somewhat generous.</p>
+</div>
+
+<table>
+  <thead><tr><th>#</th><th>Idea</th><th>Reason rejected</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Expiry-day contracts flagged as a separate population</td><td>Too small to stand alone; folded into idea 4's coverage map</td></tr>
+    <tr><td>2</td><td>No-bid coverage map as its own feature</td><td>Duplicates a stronger idea — merged into idea 4</td></tr>
+    <tr><td>3</td><td>Symbol-day completeness report</td><td>Duplicates a stronger idea — merged into idea 4</td></tr>
+    <tr><td>4</td><td>Point-in-time, no-lookahead series</td><td>Merged into idea 5, where it is the load-bearing constraint on reanalysis</td></tr>
+    <tr><td>5</td><td>Explicit "why no IV" failure codes</td><td>Already covered — R9 in the existing plan</td></tr>
+    <tr><td>6</td><td>The rejection record as an accruing asset</td><td>Already covered — U10 in the existing plan</td></tr>
+    <tr><td>7</td><td>Publish inputs and engine instead of IV</td><td>Duplicates idea 6; as a replacement for publishing IV it abandons the data product</td></tr>
+    <tr><td>8</td><td>Refuse to fit a surface; per-contract IV only</td><td>A stance, not an actionable move — no work follows from it</td></tr>
+    <tr><td>9</td><td>Distribution of IVs across assumption sets</td><td>Duplicates idea 3, which carries the same insight with a sharper single column</td></tr>
+    <tr><td>10</td><td>Reframe the product as an industry benchmark</td><td>Too vague — positioning language with no artifact attached</td></tr>
+    <tr><td>11</td><td>Federated captures contributed by others</td><td>Too expensive relative to value with zero users; needs an audience that does not exist</td></tr>
+    <tr><td>12</td><td>Signed capture manifests, chain-of-custody</td><td>Too expensive relative to likely value — the verifier in idea 2 covers the trust need at a fraction of the cost</td></tr>
+    <tr><td>13</td><td>Content-addressed quotes and surface diffing</td><td>Content addressing folds into idea 2; diffing folds into idea 5</td></tr>
+    <tr><td>14</td><td>Zero storage — derive IV on read</td><td>Already considered and rejected in the plan (KTD9) on throughput grounds</td></tr>
+    <tr><td>15</td><td>Static files on a CDN, no API</td><td>An implementation choice inside ideas 4 and 6, not a direction of its own</td></tr>
+    <tr><td>16</td><td>Daily evidence artifacts as the product surface</td><td>Already covered — R35 in the existing plan</td></tr>
+    <tr><td>17</td><td>DOI-citable dataset releases for academics</td><td>Serves a persona the strategy does not target; folded into idea 5 as a facet</td></tr>
+    <tr><td>18</td><td>Provenance label attached to each series</td><td>Duplicates idea 2 — the verifier is the stronger form of the same claim</td></tr>
+    <tr><td>19</td><td>Browser WASM pricer as a standalone direction</td><td>Merged into idea 2 as its second phase</td></tr>
+    <tr><td>20</td><td>Retro-fixing history via the versioned engine</td><td>Merged into idea 5, which is the product form of the capability</td></tr>
+    <tr><td>21</td><td>Vendor-disagreement dataset accruing over time</td><td>Merged into idea 1, which starts the accrual on day one</td></tr>
+    <tr><td>22</td><td>Rich-versus-cheap signal against realized volatility</td><td>Below the ambition floor as ideation — it is the obvious next feature and needs no discussion to surface</td></tr>
+    <tr><td>23</td><td>IV rank and percentile computed transparently</td><td>Strong, but blocked on history; revisit once the archive has depth</td></tr>
+    <tr><td>24</td><td>Term-structure and skew views</td><td>Below the ambition floor — standard derived views, no decision to make</td></tr>
+    <tr><td>25</td><td>Intraday capture cadence as its own direction</td><td>An implementation parameter inside idea 4</td></tr>
+    <tr><td>26</td><td>Track a basket chosen for cross-sectional variety</td><td>Contradicts idea 4 and the strategy's stated non-goal on coverage breadth</td></tr>
+    <tr><td>27</td><td>Arbitrage-free surface fitting with constraint enforcement</td><td>Real work but engine-track polish, not a product direction — better raised inside a plan</td></tr>
+    <tr><td>28</td><td>Alerting on volatility regime changes</td><td>Serves the premium-seller persona the strategy explicitly excludes</td></tr>
+    <tr><td>29</td><td>A hosted chart UI for the surface</td><td>"Being a chain viewer" is a stated non-goal in the strategy</td></tr>
+    <tr><td>30</td><td>Sell the cleaned data to other vendors</td><td>Business-model exploration, not a product direction; better handled as its own brainstorm</td></tr>
+    <tr><td>31</td><td>Broker integrations to pull a user's positions</td><td>Scope overrun — expands into portfolio tooling, a different product</td></tr>
+    <tr><td>32</td><td>Machine-learning surface interpolation</td><td>Not grounded — no evidence any user needs it, and it directly undercuts auditability</td></tr>
+    <tr><td>33</td><td>Crypto or futures options expansion</td><td>Scope overrun — new market before the first one is served</td></tr>
+  </tbody>
+</table>
+</section>
+
+<footer class="composition-signal">
+  Composed 2026-08-05 by ce-ideate from <code>STRATEGY.md</code>, <code>docs/evidence/provider-spike-findings.md</code>, and web research into commercial implied-volatility data providers.
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "derivative-pricing"
+version = "0.1.0"
+description = "Option pricing library with six independently-implemented methods and implied volatility inversion"
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Floors are set to the versions this project is tested against rather than the
+# oldest that might work. numpy 2.x and pandas 2.2+ matter specifically: the
+# pricing code was originally written against numpy 1.24, and the 2.x line
+# changed enough that "it imports" is not the same claim as "it is tested".
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+]
+
+[project.optional-dependencies]
+app = [
+    "flask>=3.0",
+]
+data = [
+    "yfinance>=1.5",
+]
+# pandas is a test-only dependency now that U15 moved result rendering out of
+# app.py — tests/test_adapter.py uses it to fake yfinance's own DataFrame
+# response shape, not to run the app.
+dev = [
+    "pandas>=2.2",
+    "pytest>=8.0",
+]
+
+# `api` and `analytics` ship alongside the libraries because tests/test_api.py
+# and tests/test_analytics.py import them directly, the same reason pricing
+# and marketdata are here rather than resolved off the working directory.
+# app.py and templates/ stay out: nothing imports them, so pinning them would
+# ship deployment glue no test needs. `marketdata` imports yfinance lazily,
+# so it installs and tests without the `data` extra present.
+[tool.setuptools]
+packages = ["pricing", "marketdata", "api", "analytics"]
